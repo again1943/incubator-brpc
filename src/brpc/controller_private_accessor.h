@@ -20,17 +20,9 @@
 
 // This is an rpc-internal file.
 
-#include "brpc/rpc_context.h"
 #include "brpc/socket.h"
 #include "brpc/controller.h"
 #include "brpc/stream.h"
-
-namespace google {
-namespace protobuf {
-class Message;
-}
-}
-
 
 namespace brpc {
 
@@ -54,12 +46,14 @@ public:
         return *this;
     }
 
-    Socket* get_sending_socket() {
-        return _cntl->_current_call.sending_sock.get();
+    RpcContext* get_mutable_rpc_context()  { 
+        RpcContext* context = _cntl->GetMutableRpcContext();
+        CHECK(context != NULL);
+        return context;
     }
 
-    RpcContext* get_mutable_rpc_context() {
-        return _cntl->GetMutableRpcContext();
+    Socket* get_sending_socket() {
+        return _cntl->_current_call.sending_sock.get();
     }
 
     void move_in_server_receiving_sock(SocketUniquePtr& ptr) {

@@ -45,6 +45,7 @@
 #include "brpc/progressive_reader.h"           // ProgressiveReader
 #include "brpc/grpc.h"
 #include "brpc/kvmap.h"
+#include "brpc/rpc_context.h"
 
 // EAUTH is defined in MAC
 #ifndef EAUTH
@@ -504,6 +505,12 @@ public:
     // Get the object to write key/value which will be flushed into
     // LOG(INFO) when this controller is deleted.
     KVMap& SessionKV();
+
+    void SetRpcContext(RpcContext* context) { _rpc_context.reset(context); }
+
+    const RpcContext* GetRpcContext() const { return _rpc_context.get(); }
+
+    bool HasRpcContext() const { return _rpc_context.operator bool(); }
     
     // Flush SessionKV() into `os'
     void FlushSessionKV(std::ostream& os);
@@ -549,6 +556,9 @@ public:
     int64_t deadline_us() const { return _deadline_us; }
 
 private:
+    // Only accessible from private accessor.
+    RpcContext* GetMutableRpcContext() const { return _rpc_context.get(); }
+
     struct CompletionInfo {
         CallId id;           // call_id of the corresponding request
         bool responded;      // triggered by a response rather than other errors
@@ -779,6 +789,8 @@ private:
     HttpHeader* _http_response;
 
     std::unique_ptr<KVMap> _session_kv;
+
+    std::unique_ptr<RpcContext> _rpc_context;
 
     // Fields with large size but low access frequency 
     butil::IOBuf _request_attachment;

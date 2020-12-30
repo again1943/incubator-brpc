@@ -64,6 +64,8 @@ enum ProtocolType {
     PROTOCOL_CDS_AGENT = 24;           // Client side only
     PROTOCOL_ESP = 25;                 // Client side only
     PROTOCOL_H2 = 26;
+    // Antgroup sofa bolt protocol
+    PROTOCOL_SOFA_BOLT = 27;           // Client side only
 }
 
 enum CompressType {
@@ -82,6 +84,8 @@ message ChunkInfo {
 extend google.protobuf.ServiceOptions {
     // Timeout in milliseconds, at service level.
     optional int64 service_timeout = 90000 [default = 10000];
+    // Custom service id for some special protocols.
+    optional string custom_service_id = 90001;
 }
 
 extend google.protobuf.MethodOptions {

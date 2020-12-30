@@ -21,6 +21,7 @@
 #include <google/protobuf/descriptor.h>
 #include <gflags/gflags.h>
 #include "bthread/bthread.h"
+#include "brpc/stream.h"
 #include "butil/build_config.h"    // OS_MACOSX
 #include "butil/string_printf.h"
 #include "butil/logging.h"
@@ -180,6 +181,7 @@ void Controller::ResetNonPods() {
         _server->_session_local_data_pool->Return(_session_local_data);
     }
     _mongo_session_data.reset();
+    _rpc_context.reset();
     delete _sampled_request;
 
     if (!is_used_by_rpc() && _correlation_id != INVALID_BTHREAD_ID) {

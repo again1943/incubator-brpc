@@ -1,0 +1,25 @@
+syntax = "proto2";
+
+//import "options.proto";
+package com.alipay.sofa.rpc.protobuf;
+option cc_generic_services = true;
+
+service ProtoService {
+    rpc echoObj (EchoRequest) returns (EchoResponse);
+    //option (brpc.custom_service_id) = "com.alipay.sofa.rpc.protobuf.ProtoService:1.0";
+}
+
+message EchoRequest {
+    optional string name = 1;
+    optional Group group = 2;
+}
+
+message EchoResponse {
+    optional int32 code = 1;
+    optional string message = 2;
+}
+
+enum Group {
+    A = 0;
+    B = 1;
+}

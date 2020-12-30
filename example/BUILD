@@ -38,6 +38,20 @@ proto_library(
     ],
 )
 
+proto_library(
+    name = "sofa_bolt_proto",
+    srcs = [
+        "sofa_bolt_client_c++/echo_service.proto",
+    ],
+)
+
+cc_proto_library(
+    name = "cc_sofa_bolt_proto",
+    deps = [
+        ":sofa_bolt_proto",
+    ],
+)
+
 cc_proto_library(
     name = "cc_echo_c++_proto",
     deps = [
@@ -70,6 +84,21 @@ cc_binary(
     ],
     deps = [
         ":cc_echo_c++_proto",
+        "//:brpc",
+    ],
+    copts = COPTS,
+)
+
+cc_binary(
+    name = "sofa_bolt_client",
+    srcs = [
+        "sofa_bolt_client_c++/client.cpp",
+    ],
+    includes = [
+        "sofa_bolt_client_c++",
+    ],
+    deps = [
+        ":cc_sofa_bolt_proto",
         "//:brpc",
     ],
     copts = COPTS,

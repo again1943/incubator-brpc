@@ -73,6 +73,7 @@
 #ifdef ENABLE_THRIFT_FRAMED_PROTOCOL
 # include "brpc/policy/thrift_protocol.h"
 #endif
+#include "brpc/policy/sofa_bolt_protocol.h"
 
 // Concurrency Limiters
 #include "brpc/concurrency_limiter.h"
@@ -569,6 +570,18 @@ static void GlobalInitializeOrDieImpl() {
         NULL, NULL, NULL,
         CONNECTION_TYPE_POOLED_AND_SHORT, "esp"};
     if (RegisterProtocol(PROTOCOL_ESP, esp_protocol) != 0) {
+        exit(1);
+    }
+
+    // Client side only
+    Protocol sofa_bolt_protocol = {
+        ParseSofaBoltMessage, 
+        SerializeSofaBoltRequest, PackSofaBoltRequest,
+        NULL, ProcessSofaBoltResponse,
+        NULL, NULL, NULL,
+        (ConnectionType)(CONNECTION_TYPE_POOLED_AND_SHORT | CONNECTION_TYPE_SINGLE), "sofa_bolt"
+    };
+    if (RegisterProtocol(PROTOCOL_SOFA_BOLT, sofa_bolt_protocol) != 0) {
         exit(1);
     }
 
