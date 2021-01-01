@@ -29,9 +29,6 @@ set(CMAKE_PREFIX_PATH ${OUTPUT_PATH})
 
 include(FindThreads)
 include(FindProtobuf)
-protobuf_generate_cpp(PROTO_SRC PROTO_HEADER echo_service.proto)
-# include PROTO_HEADER
-include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
 # Search for libthrift* by best effort. If it is not found and brpc is
 # compiled with thrift protocol enabled, a link error would be reported.
@@ -54,6 +51,12 @@ if((NOT BRPC_INCLUDE_PATH) OR (NOT BRPC_LIB))
     message(FATAL_ERROR "Fail to find brpc")
 endif()
 include_directories(${BRPC_INCLUDE_PATH})
+
+set(PROTOBUF_IMPORT_DIRS ${BRPC_INCLUDE_PATH})
+protobuf_generate_cpp(PROTO_SRC PROTO_HEADER echo_service.proto)
+# include PROTO_HEADER
+include_directories(${CMAKE_CURRENT_BINARY_DIR})
+
 
 find_path(GFLAGS_INCLUDE_PATH gflags/gflags.h)
 find_library(GFLAGS_LIBRARY NAMES gflags libgflags)

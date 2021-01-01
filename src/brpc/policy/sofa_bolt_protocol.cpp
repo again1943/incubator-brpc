@@ -259,12 +259,6 @@ bool CheckSofaBoltResponseHeader(const SofaBoltHeaderAccessor& accessor, Control
         return false;
     }
 
-    // Ignore ver2 check
-    if (!accessor.CheckCodec(SOFA_BOLT_PROTOBUF)) {
-        cntl->SetFailed(ERESPONSE, "Reponse codec %d not supported", static_cast<int>(accessor.GetCodec()));
-        return false;
-    }
-
     if (!accessor.CheckResponseStatus(SOFA_BOLT_RESPONSE_STATUS_SUCCESS)) {
         uint32_t status = static_cast<uint32_t>(accessor.GetResponseStatus());
         auto it = g_sofa_bolt_status_message.find(status);
@@ -272,6 +266,13 @@ bool CheckSofaBoltResponseHeader(const SofaBoltHeaderAccessor& accessor, Control
              status, (it == g_sofa_bolt_status_message.end() ? "unknown status" : it->second));
         return false;
     }
+
+    // Ignore ver2 check
+    if (!accessor.CheckCodec(SOFA_BOLT_PROTOBUF)) {
+        cntl->SetFailed(ERESPONSE, "Response codec %d not supported", static_cast<int>(accessor.GetCodec()));
+        return false;
+    }
+
     return true;
 }
 
@@ -326,7 +327,7 @@ void ProcessSofaBoltResponseImpl(MostCommonMessage* msg, Controller* cntl) {
         context_accessor.SetResponseClassName(std::move(class_name));
     }
 
-#define IOBUF_CUT_WITH_CHECK(buf, target, size, cntl)                                                   \
+#define IOBUF_CUT_WITH_SIZE_CHECK(buf, target, size, cntl)                                                   \
 do {                                                                                                    \
     if (size != (buf).cutn(&target, size)) {                                                            \
         cntl->SetFailed(ERESPONSE, "Fail to parse sofa bolt header map, not enought response size");    \
@@ -340,12 +341,12 @@ do {                                                                            
         std::string key, value;
         while (header_size_remain > 0) {
             uint32_t key_size, value_size;
-            IOBUF_CUT_WITH_CHECK(msg->payload, key_size, size_bytes, cntl);
+            IOBUF_CUT_WITH_SIZE_CHECK(msg->payload, key_size, size_bytes, cntl);
             key_size = butil::NetToHost32(key_size);
-            IOBUF_CUT_WITH_CHECK(msg->payload, key, key_size, cntl);
-            IOBUF_CUT_WITH_CHECK(msg->payload, value_size, size_bytes, cntl);
+            IOBUF_CUT_WITH_SIZE_CHECK(msg->payload, key, key_size, cntl);
+            IOBUF_CUT_WITH_SIZE_CHECK(msg->payload, value_size, size_bytes, cntl);
             value_size = butil::NetToHost32(value_size);
-            IOBUF_CUT_WITH_CHECK(msg->payload, value, value_size, cntl);
+            IOBUF_CUT_WITH_SIZE_CHECK(msg->payload, value, value_size, cntl);
             context_accessor.AddResponseHeader(key, value);
             header_size_remain -= size_bytes + key_size + size_bytes + value_size;
             key.clear();

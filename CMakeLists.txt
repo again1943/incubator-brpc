@@ -436,6 +436,11 @@ if(BUILD_UNIT_TESTS)
 endif()
 add_subdirectory(tools)
 
+configure_file(${PROJECT_SOURCE_DIR}/src/brpc/options.proto
+    ${CMAKE_CURRENT_BINARY_DIR}/output/include/brpc/
+    COPYONLY
+    )
+
 file(COPY ${CMAKE_CURRENT_BINARY_DIR}/brpc/
         DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/output/include/brpc/
         FILES_MATCHING

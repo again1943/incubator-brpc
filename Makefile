@@ -275,6 +275,7 @@ output/include:
 	@for dir in `find src -type f -name "*.h" -exec dirname {} \\; | sed -e 's/^src\///g' -e '/^src$$/d' | sort | uniq`; do mkdir -p $@/$$dir && cp src/$$dir/*.h $@/$$dir/; done
 	@for dir in `find src -type f -name "*.hpp" -exec dirname {} \\; | sed -e 's/^src\///g' -e '/^src$$/d' | sort | uniq`; do mkdir -p $@/$$dir && cp src/$$dir/*.hpp $@/$$dir/; done
 	@cp src/idl_options.proto src/idl_options.pb.h $@
+	@cp src/brpc/options.proto $@/brpc
 
 .PHONY:output/lib
 output/lib:libbrpc.a libbrpc.$(SOEXT)
