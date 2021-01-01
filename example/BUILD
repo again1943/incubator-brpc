@@ -43,6 +43,9 @@ proto_library(
     srcs = [
         "sofa_bolt_client_c++/echo_service.proto",
     ],
+    deps = [
+        "//:brpc_public_proto",
+    ],
 )
 
 cc_proto_library(

@@ -17,6 +17,8 @@ licenses(["notice"])  # Apache v2
 
 exports_files(["LICENSE"])
 
+load("@rules_proto//proto:defs.bzl", "proto_library")
+load("@rules_cc//cc:defs.bzl", "cc_proto_library")
 load(":bazel/brpc.bzl", "brpc_proto_library")
 
 config_setting(
@@ -460,27 +462,80 @@ cc_library(
     visibility = ["//visibility:public"],
 )
 
-brpc_proto_library(
-    name = "cc_brpc_idl_options_proto",
+proto_library(
+    name = "brpc_idl_options_proto",
     srcs = [
         "src/idl_options.proto",
     ],
     deps = [
-        "@com_google_protobuf//:cc_wkt_protos"
+        "@com_google_protobuf//:descriptor_proto",
     ],
     visibility = ["//visibility:public"],
 )
 
-brpc_proto_library(
-    name = "cc_brpc_internal_proto",
-    srcs = glob([
-        "src/brpc/*.proto",
-        "src/brpc/policy/*.proto",
-    ]),
-    include = "src/",
+cc_proto_library(
+    name = "cc_brpc_idl_options_proto",
     deps = [
-        ":cc_brpc_idl_options_proto",
-        "@com_google_protobuf//:cc_wkt_protos"
+        ":brpc_idl_options_proto",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+proto_library(
+    name = "brpc_public_proto",
+    srcs = [
+        "src/brpc/options.proto",
+    ],
+    strip_import_prefix = "src",
+    deps = [
+        "@com_google_protobuf//:descriptor_proto",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+cc_proto_library(
+    name = "cc_brpc_public_proto",
+    deps = [
+        ":brpc_public_proto",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+proto_library(
+    name = "brpc_internal_proto",
+    # everything but src/brpc/options.proto
+    srcs = [
+        "src/brpc/builtin_service.proto",
+        "src/brpc/errno.proto",
+        "src/brpc/get_favicon.proto",
+        "src/brpc/get_js.proto",
+        "src/brpc/nshead_meta.proto",
+        "src/brpc/proto_base.proto",
+        "src/brpc/rpc_dump.proto",
+        "src/brpc/rtmp.proto",
+        "src/brpc/span.proto",
+        "src/brpc/streaming_rpc_meta.proto",
+        "src/brpc/trackme.proto",
+        "src/brpc/policy/baidu_rpc_meta.proto",
+        "src/brpc/policy/hulu_pbrpc_meta.proto",
+        "src/brpc/policy/mongo.proto",
+        "src/brpc/policy/public_pbrpc_meta.proto",
+        "src/brpc/policy/sofa_pbrpc_meta.proto",
+    ],
+    strip_import_prefix = "src",
+    deps = [
+        ":brpc_idl_options_proto",
+        ":brpc_public_proto",
+        "@com_google_protobuf//:descriptor_proto",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+cc_proto_library(
+    name = "cc_brpc_internal_proto",
+    #include = "src/",
+    deps = [
+        ":brpc_internal_proto",
     ],
     visibility = ["//visibility:public"],
 )
@@ -515,6 +570,7 @@ cc_library(
         ":json2pb",
         ":mcpack2pb",
         ":cc_brpc_internal_proto",
+        ":cc_brpc_public_proto",
         "@com_github_google_leveldb//:leveldb",
     ],
     copts = COPTS,

@@ -1,12 +1,12 @@
 syntax = "proto2";
 
-//import "options.proto";
+import "brpc/options.proto";
 package com.alipay.sofa.rpc.protobuf;
 option cc_generic_services = true;
 
 service ProtoService {
     rpc echoObj (EchoRequest) returns (EchoResponse);
-    //option (brpc.custom_service_id) = "com.alipay.sofa.rpc.protobuf.ProtoService:1.0";
+    option (brpc.custom_service_id) = "com.alipay.sofa.rpc.protobuf.ProtoService:1.0";
 }
 
 message EchoRequest {
