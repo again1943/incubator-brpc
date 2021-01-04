@@ -36,6 +36,7 @@ DEFINE_string(connection_type, "", "Connection type. Available values: single, p
 DEFINE_int32(timeout_ms, 1000, "RPC timeout in milliseconds");
 DEFINE_int32(interval_ms, 10, "Milliseconds between consecutive requests");
 DEFINE_string(load_balancer, "", "The algorithm for load balancing");
+DEFINE_string(request_type, "request", "The type of request, request|heartbeat|oneway");
 
 
 int main(int argc, char* argv[]) {
@@ -63,18 +64,42 @@ int main(int argc, char* argv[]) {
 #undef ECHO_NS
         brpc::Controller cntl;
         {
-            brpc::policy::SofaBoltContext* context = new brpc::policy::SofaBoltContext();
-            context->SetRequestProtocolVersion(static_cast<brpc::policy::SofaBoltProtocolVersion>(FLAGS_sofa_bolt_version));
-            if (FLAGS_enable_crc_check) {
-                context->RequestEnableCrc32Check();
+            if (FLAGS_request_type == "request") {
+                brpc::policy::SofaBoltRequestContextMaker* maker = brpc::policy::SofaBoltRequestContextMaker::create();
+                maker->SetRequestProtocolVersion(static_cast<brpc::policy::SofaBoltProtocolVersion>(FLAGS_sofa_bolt_version));
+                if (FLAGS_enable_crc_check) {
+                    maker->RequestEnableCrc32Check();
+                }
+                if (FLAGS_service_name.size() > 0) {
+                    maker->SetRequestServiceName(FLAGS_service_name);
+                }
+                if (FLAGS_service_version.size() > 0) {
+                    maker->SetRequestServiceVersion(FLAGS_service_version);
+                }
+                cntl.SetRpcContext(maker->GetContext());
+            } else if (FLAGS_request_type == "heartbeat") {
+                brpc::policy::SofaBoltHeartBeatRequestContextMaker* maker = brpc::policy::SofaBoltHeartBeatRequestContextMaker::create();
+                maker->SetRequestProtocolVersion(static_cast<brpc::policy::SofaBoltProtocolVersion>(FLAGS_sofa_bolt_version));
+                maker->MarkAsHeartBeatRequest();
+                if (FLAGS_enable_crc_check) {
+                    maker->RequestEnableCrc32Check();
+                }
+                cntl.SetRpcContext(maker->GetContext());
+            } else {
+                brpc::policy::SofaBoltOneWayRequestContextMaker* maker = brpc::policy::SofaBoltOneWayRequestContextMaker::create();
+                maker->MarkAsOneWayRequest();
+                maker->SetRequestProtocolVersion(static_cast<brpc::policy::SofaBoltProtocolVersion>(FLAGS_sofa_bolt_version));
+                if (FLAGS_enable_crc_check) {
+                    maker->RequestEnableCrc32Check();
+                }
+                if (FLAGS_service_name.size() > 0) {
+                    maker->SetRequestServiceName(FLAGS_service_name);
+                }
+                if (FLAGS_service_version.size() > 0) {
+                    maker->SetRequestServiceVersion(FLAGS_service_version);
+                }
+                cntl.SetRpcContext(maker->GetContext());
             }
-            if (FLAGS_service_name.size() > 0) {
-                context->SetRequestServiceName(FLAGS_service_name);
-            }
-            if (FLAGS_service_version.size() > 0) {
-                context->SetRequestServiceVersion(FLAGS_service_version);
-            }
-            cntl.SetRpcContext(context);
         }
         cntl.set_log_id(log_id++);
         stub.echoObj(&cntl, &request, &response, NULL);

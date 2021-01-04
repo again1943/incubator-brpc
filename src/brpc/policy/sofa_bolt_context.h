@@ -33,33 +33,71 @@ namespace policy {
 // Special context for sofa bolt to handle protocol specific options.
 class SofaBoltContext : public RpcContext {
 public:
+    friend class SofaBoltHeartBeatRequestContextMaker;
+    friend class SofaBoltRequestContextMaker;
+    friend class SofaBoltOneWayRequestContextMaker;
     friend class SofaBoltContextPrivateAccessor;
 public:
-    SofaBoltContext() {
-        _request_protocol_version = SOFA_BOLT_V1;
-        _request_options = 0;
-    }
-
     virtual ~SofaBoltContext() {}
 
     SofaBoltProtocolVersion GetRequestProtocolVersion() const {
         return _request_protocol_version; 
     }
 
-    void SetRequestProtocolVersion(SofaBoltProtocolVersion version) {
-        _request_protocol_version = version;
-    }
-
     bool RequestCrc32CheckEnabled() const {
         return (_request_options & SOFA_BOLT_CRC_CHECK) > 0;
     }
 
-    void RequestEnableCrc32Check() {
-        _request_options |= SOFA_BOLT_CRC_CHECK;
-    }
-
     const std::string& GetRequestServiceName() const {
         return _request_service_name;
+    }
+
+    const std::string& GetRequestServiceUniqueId() const {
+        return _request_service_unique_id;
+    }
+
+    const std::string& GetRequestServiceVersion() const {
+        return _request_service_version;
+    }
+
+    bool HasResponseHeaderMap() const {
+        return _response_header_kv.operator bool();
+    }
+
+    const KVMap& GetResponseHeaderMap() const {
+        return *(_response_header_kv.get());
+    }
+
+    bool IsOneWayRequest() const {
+        return _request_header_type == SOFA_BOLT_ONEWAY;
+    }
+
+    bool IsHeartBeatRequest() const {
+        return _request_cmd_code == SOFA_BOLT_CMD_HEARTBEAT;
+    }
+
+    SofaBoltCommandCodeType GetRequestCommandCode() const {
+        return _request_cmd_code;
+    }
+
+    const std::string GetResponseClassName() const {
+        return _response_class_name;
+    }
+public:
+    void SetRequestProtocolVersion(SofaBoltProtocolVersion version) {
+        _request_protocol_version = version;
+    }
+
+    void MarkAsOneWayRequest() {
+        _request_header_type = SOFA_BOLT_ONEWAY;
+    }
+
+    void MarkAsHeartBeatRequest() {
+        _request_cmd_code = SOFA_BOLT_CMD_HEARTBEAT;
+    }
+
+    void RequestEnableCrc32Check() {
+        _request_options |= SOFA_BOLT_CRC_CHECK;
     }
 
     void SetRequestServiceName(const std::string& service_name) {
@@ -78,10 +116,6 @@ public:
         _request_service_unique_id = unique_id;
     }
 
-    const std::string& GetRequestServiceUniqueId() const {
-        return _request_service_unique_id;
-    }
-
     void SetRequestServiceVersion(const std::string& service_version) {
         _request_service_version = service_version;
     }
@@ -89,39 +123,7 @@ public:
     void SetRequestServiceVersion(std::string&& service_version) {
         _request_service_version = service_version;
     }
-
-    const std::string& GetRequestServiceVersion() const {
-        return _request_service_version;
-    }
-
-    void SetRequestClassName(const std::string& class_name) {
-        _request_class_name = class_name;
-    }
-
-    void SetRequestClassName(std::string&& class_name) {
-        _request_class_name = class_name;
-    }
-
-    const std::string& GetRequestClassName() const {
-        return _request_class_name;
-    }
-
-    bool HasResponseHeaderMap() const {
-        return _response_header_kv.operator bool();
-    }
-
-    const KVMap& GetResponseHeaderMap() const {
-        return *(_response_header_kv.get());
-    }
-
-    const std::string GetResponseClassName() const {
-        return _response_class_name;
-    }
-
-// Deliberately keep those _response_* fields privately writable because we're not allow user code
-// to modify those fields. Those fields would only be allowed to modify through explicitly declared
-// accessors.
-private:
+public:
     void AddResponseHeader(const std::string& key, const std::string& value) {
         if (!HasResponseHeaderMap()) {
             _response_header_kv.reset(new KVMap);
@@ -134,7 +136,15 @@ private:
     }
 
     void SetResponseClassName(std::string&& class_name) {
-        _response_class_name = class_name;
+       _response_class_name = class_name;
+    }
+private:
+    // Make constructor private so that SofaBoltContext can only be created from friend derieved classes.
+    SofaBoltContext() {
+        _request_protocol_version = SOFA_BOLT_V1;
+        _request_cmd_code = SOFA_BOLT_CMD_REQUEST;
+        _request_header_type = SOFA_BOLT_REQUEST;
+        _request_options = 0;
     }
 private:
     /***********************Request Settings Goes Here***********************/
@@ -142,6 +152,10 @@ private:
     //So if user code set protocol to SOFA_BOLT_V1, options field will be ignored.
     uint8_t _request_options;
     SofaBoltProtocolVersion _request_protocol_version;
+    // For client side, either SOFA_BOLT_CMD_REQUEST or SOFA_BOLT_CMD_ONEWAY
+    SofaBoltCommandCodeType _request_cmd_code;
+    // For client side, either SOFA_BOLT_REQUEST or SOFA_BOLT_CMD_HEARTBEAT
+    SofaBoltHeaderType _request_header_type;
     // Service name for remote serivce, this name may not as same as the protobuf
     // generated service name. User code must manually set the service name if necessary.
     std::string _request_service_name;
@@ -149,14 +163,62 @@ private:
     std::string _request_service_version;
     // The service version, if not set, default is empty
     std::string _request_service_unique_id;
-    // Sofa bolt request class name,  default to be "com.alipay.sofa.rpc.core.request.SofaRequest"
-    std::string _request_class_name;
     /**********************Response Setttings Goes Here************************/
     // Sofa bolt response header map. We keep it as a pointer because it's not always that a sofa 
     // bolt server responds a header map.
     std::unique_ptr<KVMap>   _response_header_kv;
-    // Sofa bolt response class name.
+    // Sofa bolt response class name
     std::string _response_class_name;
+};
+
+class SofaBoltRequestContextMaker : public SofaBoltContext {
+private:
+    SofaBoltRequestContextMaker() {}
+    using SofaBoltContext::MarkAsOneWayRequest;
+    using SofaBoltContext::MarkAsHeartBeatRequest;
+    using SofaBoltContext::AddResponseHeader;
+public:
+    static SofaBoltRequestContextMaker* create() {
+        return new SofaBoltRequestContextMaker();
+    }
+    SofaBoltContext* GetContext() {
+        return this;
+    }
+    virtual ~SofaBoltRequestContextMaker() {}
+};
+
+class SofaBoltHeartBeatRequestContextMaker : public SofaBoltContext {
+private:
+    SofaBoltHeartBeatRequestContextMaker() {}
+    using SofaBoltContext::SetRequestServiceName;
+    using SofaBoltContext::SetRequestServiceUniqueId;
+    using SofaBoltContext::SetRequestServiceVersion;
+    using SofaBoltContext::AddResponseHeader;
+    using SofaBoltContext::MarkAsOneWayRequest;
+public:
+    static SofaBoltHeartBeatRequestContextMaker* create() {
+        return new SofaBoltHeartBeatRequestContextMaker();
+    }
+    SofaBoltContext* GetContext() {
+        return this;
+    }
+    virtual ~SofaBoltHeartBeatRequestContextMaker() {}
+};
+
+class SofaBoltOneWayRequestContextMaker : public SofaBoltContext {
+private:
+    SofaBoltOneWayRequestContextMaker() {};
+    using SofaBoltContext::AddResponseHeader;
+    using SofaBoltContext::MarkAsHeartBeatRequest;
+public:
+    static SofaBoltOneWayRequestContextMaker* create() {
+        return new SofaBoltOneWayRequestContextMaker();
+    }
+
+    SofaBoltContext* GetContext() {
+        return this;
+    }
+    virtual ~SofaBoltOneWayRequestContextMaker() {}
 };
 
 class SofaBoltContextPrivateAccessor {

@@ -312,12 +312,6 @@ void ProcessSofaBoltResponseImpl(MostCommonMessage* msg, Controller* cntl) {
         }
     }
 
-    // Usually we have rpc context set by user code.
-    if (!cntl->HasRpcContext()) {
-        SofaBoltContext* context = new SofaBoltContext();
-        cntl->SetRpcContext(context);
-    } 
-
     SofaBoltContextPrivateAccessor context_accessor(
             static_cast<SofaBoltContext*>(ControllerPrivateAccessor(cntl).get_mutable_rpc_context()));
 
