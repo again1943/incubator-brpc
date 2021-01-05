@@ -241,6 +241,7 @@ void ExtractSofaHeader<SofaBoltResponseHeaderV2>(const butil::IOBuf* source, Sof
 template<typename SofaBoltHeaderAccessor>
 bool CheckSofaBoltResponseHeader(const SofaBoltHeaderAccessor& accessor, Controller* cntl) {
     // We don't check header.proto because we've done the check before calling CheckSofaBoltHeader.
+    const SofaBoltContext& context = *(static_cast<const SofaBoltContext*>(cntl->GetRpcContext()));
     if (!accessor.CheckVer1IfApplicable()) {
         cntl->SetFailed(ERESPONSE, "Response header proto %d not match ver1 %d",
             accessor.GetProtocol(),  static_cast<int>(accessor.GetVer1IfApplicable()));
@@ -253,9 +254,9 @@ bool CheckSofaBoltResponseHeader(const SofaBoltHeaderAccessor& accessor, Control
         return false;
     }
 
-    if (!accessor.CheckCmdCode(SOFA_BOLT_CMD_RESPONSE)) {
-        cntl->SetFailed(ERESPONSE, "Response header cmd code %d not supported",
-            static_cast<int>(accessor.GetCmdCode()));
+    if (!accessor.CheckCmdCode(context.GetRequestCmdCode())) {
+        cntl->SetFailed(ERESPONSE, "Response header cmd code %d not consistent with request cmd code %d",
+            static_cast<int>(accessor.GetCmdCode()), context.GetRequestCmdCode());
         return false;
     }
 
@@ -268,8 +269,9 @@ bool CheckSofaBoltResponseHeader(const SofaBoltHeaderAccessor& accessor, Control
     }
 
     // Ignore ver2 check
-    if (!accessor.CheckCodec(SOFA_BOLT_PROTOBUF)) {
-        cntl->SetFailed(ERESPONSE, "Response codec %d not supported", static_cast<int>(accessor.GetCodec()));
+    if (accessor.CheckCmdCode(SOFA_BOLT_CMD_RESPONSE) && !accessor.CheckCodec(SOFA_BOLT_PROTOBUF)) {
+        cntl->SetFailed(ERESPONSE, "Response codec %d not supported for SOFA_BOLT_CMD_RESPONSE", 
+            static_cast<int>(accessor.GetCodec()));
         return false;
     }
 
@@ -294,7 +296,12 @@ void ProcessSofaBoltResponseImpl(MostCommonMessage* msg, Controller* cntl) {
     UnpackedResponseHeader header;
     ExtractSofaHeader(&msg->meta, &header);
 
+    SofaBoltContextPrivateAccessor context_accessor(
+            static_cast<SofaBoltContext*>(ControllerPrivateAccessor(cntl).get_mutable_rpc_context()));
     SofaBoltHeaderReadAccessor<UnpackedResponseHeader> accessor(&header, true /* need_network_to_host_reorder */);
+    
+    context_accessor.SetResponseStatusCode(accessor.GetResponseStatus());
+
     if (!CheckSofaBoltResponseHeader(accessor, cntl)) {
         return;
     }
@@ -311,9 +318,6 @@ void ProcessSofaBoltResponseImpl(MostCommonMessage* msg, Controller* cntl) {
             return;
         }
     }
-
-    SofaBoltContextPrivateAccessor context_accessor(
-            static_cast<SofaBoltContext*>(ControllerPrivateAccessor(cntl).get_mutable_rpc_context()));
 
     if (accessor.GetClassLen() > 0) {
         std::string class_name;
@@ -479,8 +483,8 @@ void PackSofaBoltRequestImpl(butil::IOBuf* iobuf_out,
     accessor.SetProtocol(protocol);
     accessor.SetVer1IfApplicable(protocol);
 
-    accessor.SetHeaderType(SOFA_BOLT_REQUEST);
-    accessor.SetCmdCode(SOFA_BOLT_CMD_REQUEST);
+    accessor.SetHeaderType(context.GetRequestHeaderType());
+    accessor.SetCmdCode(context.GetRequestCmdCode());
     // We can't use cntl->log_id() as sofa bolt request_id because it's 64 bit, we just randomly generate one for sofa bolt.
     accessor.SetRequestId(static_cast<uint32_t>(butil::fast_rand_less_than(1ULL << 32)));
     accessor.SetCodec(SOFA_BOLT_PROTOBUF);

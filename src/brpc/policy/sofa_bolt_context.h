@@ -72,6 +72,14 @@ public:
         return _request_header_type == SOFA_BOLT_ONEWAY;
     }
 
+    SofaBoltCommandCodeType GetRequestCmdCode() const {
+        return _request_cmd_code;
+    }
+
+    SofaBoltHeaderType GetRequestHeaderType() const {
+        return _request_header_type;
+    }
+
     bool IsHeartBeatRequest() const {
         return _request_cmd_code == SOFA_BOLT_CMD_HEARTBEAT;
     }
@@ -138,6 +146,10 @@ public:
     void SetResponseClassName(std::string&& class_name) {
        _response_class_name = class_name;
     }
+
+    SofaBoltResponseStatus GetResponseStatusCode() const {
+        return _response_status_code;
+    }
 private:
     // Make constructor private so that SofaBoltContext can only be created from friend derieved classes.
     SofaBoltContext() {
@@ -145,6 +157,10 @@ private:
         _request_cmd_code = SOFA_BOLT_CMD_REQUEST;
         _request_header_type = SOFA_BOLT_REQUEST;
         _request_options = 0;
+    }
+
+    void SetResponseStatusCode(SofaBoltResponseStatus status) {
+        _response_status_code = status;
     }
 private:
     /***********************Request Settings Goes Here***********************/
@@ -169,6 +185,8 @@ private:
     std::unique_ptr<KVMap>   _response_header_kv;
     // Sofa bolt response class name
     std::string _response_class_name;
+    // Response status code
+    SofaBoltResponseStatus _response_status_code;
 };
 
 class SofaBoltRequestContextMaker : public SofaBoltContext {
@@ -236,6 +254,14 @@ public:
 
     void SetResponseClassName(std::string&& class_name) {
         _reference.SetResponseClassName(std::move(class_name));
+    }
+
+    void SetResponseStatusCode(SofaBoltResponseStatus status) {
+        _reference.SetResponseStatusCode(status);
+    }
+
+    void SetResponseStatusCode(uint16_t status) {
+        _reference.SetResponseStatusCode(static_cast<SofaBoltResponseStatus>(status));
     }
 private:
     SofaBoltContext& _reference;

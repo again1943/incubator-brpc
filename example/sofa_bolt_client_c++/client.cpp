@@ -113,11 +113,16 @@ int main(int argc, char* argv[]) {
                 }
             }
 
-            LOG(INFO) << "Received response from " << cntl.remote_side()
-                << " to " << cntl.local_side()
-                << ", ClassName=" << context->GetResponseClassName()
-                << ", code=" << response.code() << ", message=" << response.message() 
-                << " latency=" << cntl.latency_us() << "us";
+            if (context->IsHeartBeatRequest()) {
+                LOG(INFO) << "Received heartbeat response from " << cntl.remote_side()
+                    << ", response_status_code=" << context->GetResponseStatusCode();
+            } else {
+                LOG(INFO) << "Received response from " << cntl.remote_side()
+                    << " to " << cntl.local_side()
+                    << ", ClassName=" << context->GetResponseClassName()
+                    << ", code=" << response.code() << ", message=" << response.message() 
+                    << " latency=" << cntl.latency_us() << "us";
+            }
         } else {
             LOG(WARNING) << cntl.ErrorText();
         }
