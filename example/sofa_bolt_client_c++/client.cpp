@@ -86,6 +86,9 @@ int main(int argc, char* argv[]) {
                 }
                 cntl.SetRpcContext(maker->GetContext());
             } else {
+                LOG(ERROR) << "Unsupported request type " << FLAGS_request_type;
+                return -1;
+                /**
                 brpc::policy::SofaBoltOneWayRequestContextMaker* maker = brpc::policy::SofaBoltOneWayRequestContextMaker::create();
                 maker->MarkAsOneWayRequest();
                 maker->SetRequestProtocolVersion(static_cast<brpc::policy::SofaBoltProtocolVersion>(FLAGS_sofa_bolt_version));
@@ -99,6 +102,7 @@ int main(int argc, char* argv[]) {
                     maker->SetRequestServiceVersion(FLAGS_service_version);
                 }
                 cntl.SetRpcContext(maker->GetContext());
+                **/
             }
         }
         cntl.set_log_id(log_id++);

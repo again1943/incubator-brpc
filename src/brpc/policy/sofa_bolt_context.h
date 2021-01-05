@@ -223,6 +223,7 @@ public:
     virtual ~SofaBoltHeartBeatRequestContextMaker() {}
 };
 
+// Due to BRPC's current mechanism, oneway requests are not supported.
 class SofaBoltOneWayRequestContextMaker : public SofaBoltContext {
 private:
     SofaBoltOneWayRequestContextMaker() {};
