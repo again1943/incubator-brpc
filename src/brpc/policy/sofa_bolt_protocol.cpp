@@ -254,7 +254,10 @@ bool CheckSofaBoltResponseHeader(const SofaBoltHeaderAccessor& accessor, Control
         return false;
     }
 
-    if (!accessor.CheckCmdCode(context.GetRequestCmdCode())) {
+    SofaBoltCommandCodeType expected_cmd_code = (
+            context.GetRequestCmdCode() == SOFA_BOLT_CMD_REQUEST ? 
+            SOFA_BOLT_CMD_RESPONSE : SOFA_BOLT_CMD_HEARTBEAT);
+    if (!accessor.CheckCmdCode(expected_cmd_code)) {
         cntl->SetFailed(ERESPONSE, "Response header cmd code %d not consistent with request cmd code %d",
             static_cast<int>(accessor.GetCmdCode()), context.GetRequestCmdCode());
         return false;
