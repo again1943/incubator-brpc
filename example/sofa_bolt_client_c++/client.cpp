@@ -36,7 +36,8 @@ DEFINE_string(connection_type, "", "Connection type. Available values: single, p
 DEFINE_int32(timeout_ms, 1000, "RPC timeout in milliseconds");
 DEFINE_int32(interval_ms, 10, "Milliseconds between consecutive requests");
 DEFINE_string(load_balancer, "", "The algorithm for load balancing");
-DEFINE_string(request_type, "request", "The type of request, request|heartbeat|oneway");
+DEFINE_string(request_type, "request", "The type of request, request|heartbeat");
+DEFINE_bool(no_context, false, "No context allocation for each sofa bolt request");
 
 
 int main(int argc, char* argv[]) {
@@ -63,7 +64,9 @@ int main(int argc, char* argv[]) {
         request.set_group(ECHO_NS::A);
 #undef ECHO_NS
         brpc::Controller cntl;
-        {
+        if (FLAGS_no_context) {
+            // Do nothing
+        } else {
             if (FLAGS_request_type == "request") {
                 brpc::policy::SofaBoltRequestContextMaker* maker = brpc::policy::SofaBoltRequestContextMaker::create();
                 maker->SetRequestProtocolVersion(static_cast<brpc::policy::SofaBoltProtocolVersion>(FLAGS_sofa_bolt_version));
@@ -110,22 +113,29 @@ int main(int argc, char* argv[]) {
 
        if (!cntl.Failed()) {
             const brpc::policy::SofaBoltContext* context = static_cast<const brpc::policy::SofaBoltContext*>(cntl.GetRpcContext());
-            if (context->HasResponseHeaderMap()) {
-                brpc::KVMap headers = context->GetResponseHeaderMap();
-                for (brpc::KVMap::Iterator it = headers.Begin(); it != headers.End(); ++it) {
-                    LOG(INFO) << "header_key:\n" << it->first << ":" << it->second;
+            if (context) {
+                if (context->HasResponseHeaderMap()) {
+                    brpc::KVMap headers = context->GetResponseHeaderMap();
+                    for (brpc::KVMap::Iterator it = headers.Begin(); it != headers.End(); ++it) {
+                        LOG(INFO) << "header_key:\n" << it->first << ":" << it->second;
+                    }
                 }
-            }
 
-            if (context->IsHeartBeatRequest()) {
-                LOG(INFO) << "Received heartbeat response from " << cntl.remote_side()
-                    << ", response_status_code=" << context->GetResponseStatusCode();
+                if (context->IsHeartBeatRequest()) {
+                    LOG(INFO) << "Received heartbeat response from " << cntl.remote_side()
+                        << ", response_status_code=" << context->GetResponseStatusCode();
+                } else {
+                    LOG(INFO) << "Received response from " << cntl.remote_side()
+                        << " to " << cntl.local_side()
+                        << ", ClassName=" << context->GetResponseClassName()
+                        << ", code=" << response.code() << ", message=" << response.message() 
+                        << " latency=" << cntl.latency_us() << "us";
+                }
             } else {
-                LOG(INFO) << "Received response from " << cntl.remote_side()
-                    << " to " << cntl.local_side()
-                    << ", ClassName=" << context->GetResponseClassName()
-                    << ", code=" << response.code() << ", message=" << response.message() 
-                    << " latency=" << cntl.latency_us() << "us";
+                    LOG(INFO) << "Received response from " << cntl.remote_side()
+                        << " to " << cntl.local_side()
+                        << ", code=" << response.code() << ", message=" << response.message() 
+                        << " latency=" << cntl.latency_us() << "us";
             }
         } else {
             LOG(WARNING) << cntl.ErrorText();

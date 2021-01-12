@@ -84,10 +84,6 @@ public:
         return _request_cmd_code == SOFA_BOLT_CMD_HEARTBEAT;
     }
 
-    SofaBoltCommandCodeType GetRequestCommandCode() const {
-        return _request_cmd_code;
-    }
-
     const std::string GetResponseClassName() const {
         return _response_class_name;
     }

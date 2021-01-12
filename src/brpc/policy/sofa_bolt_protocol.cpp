@@ -168,7 +168,7 @@ ParseResult ParseSofaBoltMessageImpl(butil::IOBuf* source,  Socket* socket) {
     size_t total_len = payload_len;
 
     if ((options & SOFA_BOLT_CRC_CHECK) > 0) {
-        total_len += sizeof(uint32_t); 
+        total_len += sizeof(uint32_t);
     }
 
     if (source->size() < total_len) {
@@ -182,7 +182,7 @@ ParseResult ParseSofaBoltMessageImpl(butil::IOBuf* source,  Socket* socket) {
 }
 
 // Parse sofa bolt message.
-ParseResult ParseSofaBoltMessage(butil::IOBuf* source, Socket* socket, bool read_eof, const void *arg) { 
+ParseResult ParseSofaBoltMessage(butil::IOBuf* source, Socket* socket, bool read_eof, const void *arg) {
     uint8_t protocol;
     size_t size = sizeof(uint8_t);
     size_t n = source->copy_to(&protocol, size);
@@ -208,12 +208,12 @@ void ExtractSofaHeader(const butil::IOBuf* source, UnpackedResponseHeader* heade
 
 template<>
 void ExtractSofaHeader<SofaBoltResponseHeaderV1>(const butil::IOBuf* source, SofaBoltResponseHeaderV1* header) {
-    EXTRACT_SOFA_BOLT_HEADER_FIELD(source, header, proto, offsetof(SofaBoltResponseHeaderV1Packed, proto)); 
-    EXTRACT_SOFA_BOLT_HEADER_FIELD(source, header, type, offsetof(SofaBoltResponseHeaderV1Packed, type)); 
+    EXTRACT_SOFA_BOLT_HEADER_FIELD(source, header, proto, offsetof(SofaBoltResponseHeaderV1Packed, proto));
+    EXTRACT_SOFA_BOLT_HEADER_FIELD(source, header, type, offsetof(SofaBoltResponseHeaderV1Packed, type));
     EXTRACT_SOFA_BOLT_HEADER_FIELD(source, header, cmd_code, offsetof(SofaBoltResponseHeaderV1Packed, cmd_code));
     EXTRACT_SOFA_BOLT_HEADER_FIELD(source, header, ver2, offsetof(SofaBoltResponseHeaderV1Packed, ver2));
     EXTRACT_SOFA_BOLT_HEADER_FIELD(source, header, request_id, offsetof(SofaBoltResponseHeaderV1Packed, request_id));
-    EXTRACT_SOFA_BOLT_HEADER_FIELD(source, header, codec, offsetof(SofaBoltResponseHeaderV1Packed, codec)); 
+    EXTRACT_SOFA_BOLT_HEADER_FIELD(source, header, codec, offsetof(SofaBoltResponseHeaderV1Packed, codec));
     EXTRACT_SOFA_BOLT_HEADER_FIELD(source, header, resp_status, offsetof(SofaBoltResponseHeaderV1Packed, resp_status));
     EXTRACT_SOFA_BOLT_HEADER_FIELD(source, header, class_len, offsetof(SofaBoltResponseHeaderV1Packed, class_len));
     EXTRACT_SOFA_BOLT_HEADER_FIELD(source, header, header_len, offsetof(SofaBoltResponseHeaderV1Packed, header_len));
@@ -224,7 +224,7 @@ template<>
 void ExtractSofaHeader<SofaBoltResponseHeaderV2>(const butil::IOBuf* source, SofaBoltResponseHeaderV2* header) {
     EXTRACT_SOFA_BOLT_HEADER_FIELD(source, header, proto, offsetof(SofaBoltResponseHeaderV2Packed, proto));
     EXTRACT_SOFA_BOLT_HEADER_FIELD(source, header, ver1, offsetof(SofaBoltResponseHeaderV2Packed, ver1));
-    EXTRACT_SOFA_BOLT_HEADER_FIELD(source, header, type, offsetof(SofaBoltResponseHeaderV2Packed, type)); 
+    EXTRACT_SOFA_BOLT_HEADER_FIELD(source, header, type, offsetof(SofaBoltResponseHeaderV2Packed, type));
     EXTRACT_SOFA_BOLT_HEADER_FIELD(source, header, cmd_code, offsetof(SofaBoltResponseHeaderV2Packed, cmd_code));
     EXTRACT_SOFA_BOLT_HEADER_FIELD(source, header, ver2, offsetof(SofaBoltResponseHeaderV2Packed, ver2));
     EXTRACT_SOFA_BOLT_HEADER_FIELD(source, header, request_id, offsetof(SofaBoltResponseHeaderV2Packed, request_id));
@@ -241,7 +241,7 @@ void ExtractSofaHeader<SofaBoltResponseHeaderV2>(const butil::IOBuf* source, Sof
 template<typename SofaBoltHeaderAccessor>
 bool CheckSofaBoltResponseHeader(const SofaBoltHeaderAccessor& accessor, Controller* cntl) {
     // We don't check header.proto because we've done the check before calling CheckSofaBoltHeader.
-    const SofaBoltContext& context = *(static_cast<const SofaBoltContext*>(cntl->GetRpcContext()));
+    const SofaBoltContext* context = static_cast<const SofaBoltContext*>(cntl->GetRpcContext());
     if (!accessor.CheckVer1IfApplicable()) {
         cntl->SetFailed(ERESPONSE, "Response header proto %d not match ver1 %d",
             accessor.GetProtocol(),  static_cast<int>(accessor.GetVer1IfApplicable()));
@@ -254,26 +254,28 @@ bool CheckSofaBoltResponseHeader(const SofaBoltHeaderAccessor& accessor, Control
         return false;
     }
 
-    SofaBoltCommandCodeType expected_cmd_code = (
-            context.GetRequestCmdCode() == SOFA_BOLT_CMD_REQUEST ? 
-            SOFA_BOLT_CMD_RESPONSE : SOFA_BOLT_CMD_HEARTBEAT);
+    SofaBoltCommandCodeType expected_cmd_code = SOFA_BOLT_CMD_RESPONSE;
+    if (context && context->GetRequestCmdCode() == SOFA_BOLT_CMD_HEARTBEAT) {
+        expected_cmd_code = SOFA_BOLT_CMD_HEARTBEAT;
+    }
+
     if (!accessor.CheckCmdCode(expected_cmd_code)) {
         cntl->SetFailed(ERESPONSE, "Response header cmd code %d not consistent with request cmd code %d",
-            static_cast<int>(accessor.GetCmdCode()), context.GetRequestCmdCode());
+            static_cast<int>(accessor.GetCmdCode()), expected_cmd_code);
         return false;
     }
 
     if (!accessor.CheckResponseStatus(SOFA_BOLT_RESPONSE_STATUS_SUCCESS)) {
         uint32_t status = static_cast<uint32_t>(accessor.GetResponseStatus());
         auto it = g_sofa_bolt_status_message.find(status);
-        cntl->SetFailed(ERESPONSE, "Response failed, server returned status %d, message %s",
+        cntl->SetFailed(accessor.GetResponseStatus(), "Response failed, server returned status %d, message %s",
              status, (it == g_sofa_bolt_status_message.end() ? "unknown status" : it->second));
         return false;
     }
 
     // Ignore ver2 check
     if (accessor.CheckCmdCode(SOFA_BOLT_CMD_RESPONSE) && !accessor.CheckCodec(SOFA_BOLT_PROTOBUF)) {
-        cntl->SetFailed(ERESPONSE, "Response codec %d not supported for SOFA_BOLT_CMD_RESPONSE", 
+        cntl->SetFailed(ERESPONSE, "Response codec %d not supported for SOFA_BOLT_CMD_RESPONSE",
             static_cast<int>(accessor.GetCodec()));
         return false;
     }
@@ -299,11 +301,13 @@ void ProcessSofaBoltResponseImpl(MostCommonMessage* msg, Controller* cntl) {
     UnpackedResponseHeader header;
     ExtractSofaHeader(&msg->meta, &header);
 
-    SofaBoltContextPrivateAccessor context_accessor(
-            static_cast<SofaBoltContext*>(ControllerPrivateAccessor(cntl).get_mutable_rpc_context()));
+    SofaBoltContext* context = static_cast<SofaBoltContext*>(ControllerPrivateAccessor(cntl).get_mutable_rpc_context());
     SofaBoltHeaderReadAccessor<UnpackedResponseHeader> accessor(&header, true /* need_network_to_host_reorder */);
-    
-    context_accessor.SetResponseStatusCode(accessor.GetResponseStatus());
+
+    if (context) {
+        SofaBoltContextPrivateAccessor context_accessor(context);
+        context_accessor.SetResponseStatusCode(accessor.GetResponseStatus());
+    }
 
     if (!CheckSofaBoltResponseHeader(accessor, cntl)) {
         return;
@@ -322,10 +326,13 @@ void ProcessSofaBoltResponseImpl(MostCommonMessage* msg, Controller* cntl) {
         }
     }
 
-    if (accessor.GetClassLen() > 0) {
+    if (context && accessor.GetClassLen() > 0) {
         std::string class_name;
         msg->payload.cutn(&class_name, accessor.GetClassLen());
+        SofaBoltContextPrivateAccessor context_accessor(context);
         context_accessor.SetResponseClassName(std::move(class_name));
+    } else {
+        msg->payload.pop_front(accessor.GetClassLen());
     }
 
 #define IOBUF_CUT_WITH_SIZE_CHECK(buf, target, size, cntl)                                                   \
@@ -337,30 +344,36 @@ do {                                                                            
 } while (0)
 
     if (accessor.GetHeaderLen() > 0) {
-        ssize_t header_size_remain = accessor.GetHeaderLen();   
-        size_t size_bytes = sizeof(uint32_t);
-        std::string key, value;
-        while (header_size_remain > 0) {
-            uint32_t key_size, value_size;
-            IOBUF_CUT_WITH_SIZE_CHECK(msg->payload, key_size, size_bytes, cntl);
-            key_size = butil::NetToHost32(key_size);
-            IOBUF_CUT_WITH_SIZE_CHECK(msg->payload, key, key_size, cntl);
-            IOBUF_CUT_WITH_SIZE_CHECK(msg->payload, value_size, size_bytes, cntl);
-            value_size = butil::NetToHost32(value_size);
-            IOBUF_CUT_WITH_SIZE_CHECK(msg->payload, value, value_size, cntl);
-            context_accessor.AddResponseHeader(key, value);
-            header_size_remain -= size_bytes + key_size + size_bytes + value_size;
-            key.clear();
-            value.clear();
+        if (!context) {
+            msg->payload.pop_front(accessor.GetHeaderLen());
+        } else {
+            SofaBoltContextPrivateAccessor context_accessor(context);
+            ssize_t header_size_remain = accessor.GetHeaderLen();
+            size_t size_bytes = sizeof(uint32_t);
+            std::string key, value;
+            while (header_size_remain > 0) {
+                uint32_t key_size, value_size;
+                IOBUF_CUT_WITH_SIZE_CHECK(msg->payload, key_size, size_bytes, cntl);
+                key_size = butil::NetToHost32(key_size);
+                IOBUF_CUT_WITH_SIZE_CHECK(msg->payload, key, key_size, cntl);
+                IOBUF_CUT_WITH_SIZE_CHECK(msg->payload, value_size, size_bytes, cntl);
+                value_size = butil::NetToHost32(value_size);
+                IOBUF_CUT_WITH_SIZE_CHECK(msg->payload, value, value_size, cntl);
+                context_accessor.AddResponseHeader(key, value);
+                header_size_remain -= size_bytes + key_size + size_bytes + value_size;
+                key.clear();
+                value.clear();
+            }
         }
     }
 #undef IOBUF_CUT_WITH_CHECK
+
     if (cntl->Failed() || !cntl->response() || accessor.GetContentLen() == 0) {
         return;
     }
     if (!ParsePbFromIOBuf(cntl->response(), msg->payload)) {
         cntl->SetFailed(ERESPONSE, "Fail to parse response message, response_size = %zd",
-                        msg->payload.size());  
+                        msg->payload.size());
     }
 }
 
@@ -400,18 +413,16 @@ void ProcessSofaBoltResponse(InputMessageBase* msg_base) {
 
 bool SofaBoltCheckContext(Controller* controller) {
     const SofaBoltContext* context = static_cast<const SofaBoltContext*>(controller->GetRpcContext());
-    if (!context) {
-        controller->SetFailed(EREQUEST, "Sofa bolt request context not set");
-        return false;
-    }
-    SofaBoltProtocolVersion protocol = context->GetRequestProtocolVersion();
-    if (protocol != SOFA_BOLT_V1 && protocol != SOFA_BOLT_V2) {
-        controller->SetFailed(EREQUEST, "Unsupported sofa bolt protocol version %d", static_cast<int>(protocol));
-        return false;
-    }
-    // If user code set crc check to v1, just ignore it instead of setting request failed.
-    if (protocol == SOFA_BOLT_V1 && context->RequestCrc32CheckEnabled()) {
-        LOG(WARNING) << "Sofa bolt v1 does not support crc check, option ignored";
+    if (context) {
+        SofaBoltProtocolVersion protocol = context->GetRequestProtocolVersion();
+        if (protocol != SOFA_BOLT_V1 && protocol != SOFA_BOLT_V2) {
+            controller->SetFailed(EREQUEST, "Unsupported sofa bolt protocol version %d", static_cast<int>(protocol));
+            return false;
+        }
+        // If user code set crc check to v1, just ignore it instead of setting request failed.
+        if (protocol == SOFA_BOLT_V1 && context->RequestCrc32CheckEnabled()) {
+            LOG(WARNING) << "Sofa bolt v1 does not support crc check, option ignored";
+        }
     }
     return true;
 }
@@ -420,9 +431,9 @@ bool SofaBoltCheckContext(Controller* controller) {
 void SerializeSofaBoltRequest(butil::IOBuf* buf,
                               Controller* cntl,
                               const google::protobuf::Message* request) {
-    CompressType type = cntl->request_compress_type(); 
+    CompressType type = cntl->request_compress_type();
     if (type != COMPRESS_TYPE_NONE) {
-        cntl->SetFailed(EREQUEST, "Sofa bolt does not support data compression"); 
+        cntl->SetFailed(EREQUEST, "Sofa bolt does not support data compression");
         return;
     }
     if (!SofaBoltCheckContext(cntl)) {
@@ -450,8 +461,8 @@ static const char g_sofa_bolt_sofa_head_method_key_name[] = "sofa_head_method_na
 static const char g_sofa_bolt_rpc_trace_id_key[] = "rpc_trace_context.sofaTraceId";
 
 bool ShouldUseCustomServiceId(
-        const SofaBoltContext& context, const google::protobuf::MethodDescriptor* method, std::string* service_id) {
-    if (context.GetRequestServiceName().size() > 0) {
+        const SofaBoltContext* context, const google::protobuf::MethodDescriptor* method, std::string* service_id) {
+    if (context && context->GetRequestServiceName().size() > 0) {
         return false;
     }
 
@@ -479,20 +490,34 @@ void PackSofaBoltRequestImpl(butil::IOBuf* iobuf_out,
                 const Authenticator* /* not used */) {
     SofaBoltHeader header;
     SofaBoltHeaderWriteAccessor<SofaBoltHeader> accessor(&header);
+    SofaBoltProtocolVersion protocol = SOFA_BOLT_V1;
+    SofaBoltHeaderType header_type = SOFA_BOLT_REQUEST;
+    SofaBoltCommandCodeType cmd_code = SOFA_BOLT_CMD_REQUEST;
+    bool is_crc32_check_enabled = false;
 
-    // SerializeSofaBoltRequest have already checked the context not NULL, we don't check it here again.
-    const SofaBoltContext& context = *static_cast<const SofaBoltContext*>(cntl->GetRpcContext());
-    SofaBoltProtocolVersion protocol = context.GetRequestProtocolVersion();
+    const SofaBoltContext* context = static_cast<const SofaBoltContext*>(cntl->GetRpcContext());
+    if (context) {
+        protocol = context->GetRequestProtocolVersion();
+        header_type = context->GetRequestHeaderType();
+        cmd_code = context->GetRequestCmdCode();
+        is_crc32_check_enabled = context->RequestCrc32CheckEnabled();
+    }
+
     accessor.SetProtocol(protocol);
     accessor.SetVer1IfApplicable(protocol);
 
-    accessor.SetHeaderType(context.GetRequestHeaderType());
-    accessor.SetCmdCode(context.GetRequestCmdCode());
-    // We can't use cntl->log_id() as sofa bolt request_id because it's 64 bit, we just randomly generate one for sofa bolt.
-    accessor.SetRequestId(static_cast<uint32_t>(butil::fast_rand_less_than(1ULL << 32)));
+    accessor.SetHeaderType(header_type);
+    accessor.SetCmdCode(cmd_code);
+    // cntl->log_id() is uint64_t while sofa bolt needs a 32-bit request_id. We just use the lower 32-bit of
+    // log_id as sofa bolt request_id.
+    if (cntl->has_log_id()) {
+        accessor.SetRequestId(static_cast<uint32_t>(cntl->log_id()));
+    } else {
+        accessor.SetRequestId(static_cast<uint32_t>(butil::fast_rand_less_than(1ULL << 32)));
+    }
     accessor.SetCodec(SOFA_BOLT_PROTOBUF);
     // Options silently ignored for protocol v1
-    if (context.RequestCrc32CheckEnabled()) {
+    if (is_crc32_check_enabled) {
         accessor.SetEnableCrcCheckIfApplicable();
     }
     // Take negative timeout or 0 or any value >= UINT32_MAX as MAX_TIME_OUT(UINT32_MAX)
@@ -515,34 +540,38 @@ void PackSofaBoltRequestImpl(butil::IOBuf* iobuf_out,
         // COPY class_name into payload
         payload_appender.append(class_name, class_len);
     }
-    // HeaderLen && Header 
+    // HeaderLen && Header
     {
         size_t header_len = 0;
         size_t key_size = sizeof(g_sofa_bolt_service_key_name) - 1;
         size_t value_size;
         std::string service_identifier;
 
-        // Sofa bolt service identifier: ${service_name}:${service_version}:[${service_unique_id}], 
+        // Sofa bolt service identifier: ${service_name}:${service_version}:[${service_unique_id}],
         // where service_unique_id may be abstent.
         // The service identifier choosing rule:
         // 1. First to check if there's service name set in context, if set, use service name from context.
-        // 2. Check if there is service identifier set in the service description proto (see brpc/options.proto) 
+        // 2. Check if there is service identifier set in the service description proto (see brpc/options.proto)
         //      to see the `custom_service_id` option
         // 3. Use method->setvice()->full_name() as service name
         if (!ShouldUseCustomServiceId(context, method, &service_identifier)) {
-            if (context.GetRequestServiceName().size() > 0) {
-                service_identifier = context.GetRequestServiceName();
+            if (context && context->GetRequestServiceName().size() > 0) {
+                service_identifier = context->GetRequestServiceName();
             } else {
                 service_identifier = method->service()->full_name();
             }
+
             service_identifier.append(":");
-            const char* service_version = context.GetRequestServiceVersion().empty() ? 
-                        "1.0" : context.GetRequestServiceVersion().c_str();
+
+            const char* service_version = "1.0";
+            if (context && context->GetRequestServiceVersion().size() > 0) {
+                service_version = context->GetRequestServiceVersion().c_str();
+            }
             service_identifier.append(service_version);
 
-            if (context.GetRequestServiceUniqueId().size() > 0) {
+            if (context && context->GetRequestServiceUniqueId().size() > 0) {
                 service_identifier.append(":");
-                service_identifier.append(context.GetRequestServiceUniqueId().data());
+                service_identifier.append(context->GetRequestServiceUniqueId().c_str());
             }
         }
         value_size = service_identifier.size();
@@ -575,6 +604,8 @@ void PackSofaBoltRequestImpl(butil::IOBuf* iobuf_out,
             value_size = request_id.size();
             header_len += IOBufCopyKV(payload_appender, g_sofa_bolt_rpc_trace_id_key,
                             key_size, request_id.data(), value_size);
+            // remember to set request_id so that user code could log it.
+            cntl->set_request_id(request_id);
         }
         accessor.SetHeaderLen(header_len);
     }
@@ -612,10 +643,11 @@ void PackSofaBoltRequest(butil::IOBuf* iobuf_out,
     // Store `correlation_id' into Socket since sofa bolt protocol
     // doesn't contain this field
     accessor.get_sending_socket()->set_correlation_id(correlation_id);
+    LOG(INFO) << "correlation_id=" << std::hex << correlation_id << ", socket_id=" << accessor.get_sending_socket()->main_socket_id();
 
     // SerializeSofaBoltRequest have already checked the context not NULL, we don't check it here again.
     const SofaBoltContext* context = static_cast<const SofaBoltContext*>(cntl->GetRpcContext());
-    SofaBoltProtocolVersion protocol = context->GetRequestProtocolVersion();
+    SofaBoltProtocolVersion protocol = context ? context->GetRequestProtocolVersion() : SOFA_BOLT_V1;
     switch (protocol) {
         case SOFA_BOLT_V1:
             PackSofaBoltRequestImpl<SofaBoltRequestHeaderV1>(
