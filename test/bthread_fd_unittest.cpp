@@ -248,6 +248,8 @@ TEST(FDTest, ping_pong) {
     pthread_t cth[NCLIENT];
 #endif
     ClientMeta* cm[NCLIENT];
+    SocketMeta* sm[NCLIENT];
+    EpollMeta*  em[NEPOLL];
 
     for (size_t i = 0; i < NEPOLL; ++i) {
 #if defined(OS_LINUX)
@@ -264,6 +266,7 @@ TEST(FDTest, ping_pong) {
         SocketMeta* m = new SocketMeta;
         m->fd = fds[i * 2];
         m->epfd = epfd[fmix32(i) % NEPOLL];
+        sm[i] = m;
         ASSERT_EQ(0, fcntl(m->fd, F_SETFL, fcntl(m->fd, F_GETFL, 0) | O_NONBLOCK));
 
 #ifdef CREATE_THREAD_TO_PROCESS
@@ -305,12 +308,13 @@ TEST(FDTest, ping_pong) {
     tm.start();
 
     for (size_t i = 0; i < NEPOLL; ++i) {
-        EpollMeta *em = new EpollMeta;
-        em->epfd = epfd[i];
+        EpollMeta *m = new EpollMeta;
+        em[i] = m;
+        m->epfd = epfd[i];
 #ifdef RUN_EPOLL_IN_BTHREAD
-        ASSERT_EQ(0, bthread_start_urgent(&eth[i], epoll_thread, em, NULL);
+        ASSERT_EQ(0, bthread_start_urgent(&eth[i], epoll_thread, m, NULL);
 #else
-        ASSERT_EQ(0, pthread_create(&eth[i], NULL, epoll_thread, em));
+        ASSERT_EQ(0, pthread_create(&eth[i], NULL, epoll_thread, m));
 #endif
     }
 
@@ -344,6 +348,13 @@ TEST(FDTest, ping_pong) {
     //bthread::stop_and_join_epoll_threads();
     bthread_usleep(100000);
 
+    for (size_t i = 0; i < NCLIENT; ++i) {
+        delete sm[i];
+        delete cm[i];
+    }
+    for (size_t i = 0; i < NEPOLL; ++i) {
+        delete em[i];
+    }
 #ifndef NDEBUG
     std::cout << "break_nums=" << bthread::break_nums << std::endl;
 #endif

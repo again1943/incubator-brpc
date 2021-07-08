@@ -31,6 +31,7 @@ build:asan --copt=-DADDRESS_SANITIZER  # used by absl
 build:asan --linkopt=-fsanitize=address
 build:asan --action_env=ASAN_OPTIONS=detect_leaks=1:color=always
 build:asan --action_env=LSAN_OPTIONS=report_objects=1
+build:asan --action_env=ASAN_OPTIONS=alloc_dealloc_mismatch=0
 
 build:tsan --strip=never
 build:tsan --copt=-fsanitize=thread

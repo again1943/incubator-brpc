@@ -47,6 +47,7 @@ extern IOBuf::Block* get_tls_block_head();
 extern int get_tls_block_count();
 extern void remove_tls_block_chain();
 extern IOBuf::Block* acquire_tls_block();
+extern void release_tls_block(IOBuf::Block* b);
 extern IOBuf::Block* share_tls_block();
 extern void release_tls_block_chain(IOBuf::Block* b);
 extern uint32_t block_cap(IOBuf::Block const* b);
@@ -293,6 +294,7 @@ TEST_F(IOBufTest, appendv) {
     ASSERT_EQ(0, b.appendv(vec2, arraysize(vec2)));
     ASSERT_EQ(full_len, b.size());
     ASSERT_EQ(0, memcmp(str, b.to_string().data(), full_len));
+    free(str);
 }
 
 TEST_F(IOBufTest, reserve) {
@@ -1704,6 +1706,7 @@ TEST_F(IOBufTest, acquire_tls_block) {
     b = butil::iobuf::acquire_tls_block();
     ASSERT_EQ(0, butil::iobuf::get_tls_block_count());
     ASSERT_NE(butil::iobuf::block_cap(b), butil::iobuf::block_size(b));
+    butil::iobuf::release_tls_block(b);
 }
 
 } // namespace

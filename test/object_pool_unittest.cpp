@@ -165,10 +165,10 @@ TEST_F(ObjectPoolTest, validator) {
 
 TEST_F(ObjectPoolTest, get_int) {
     clear_objects<int>();
-    
+
     // Perf of this test is affected by previous case.
     const size_t N = 100000;
-    
+
     butil::Timer tm;
 
     // warm up
@@ -176,21 +176,25 @@ TEST_F(ObjectPoolTest, get_int) {
     *p = 0;
     return_object(p);
     delete (new int);
-    
+
     tm.start();
     for (size_t i = 0; i < N; ++i) {
         *get_object<int>() = i;
     }
     tm.stop();
     printf("get a int takes %.1fns\n", tm.n_elapsed()/(double)N);
-    
+
+    std::vector<int*> ptrs;
+    ptrs.reserve(N);
     tm.start();
     for (size_t i = 0; i < N; ++i) {
-        *(new int) = i;
-    }    
+        ptrs.push_back(new int(i));
+    }
     tm.stop();
     printf("new a int takes %" PRId64 "ns\n", tm.n_elapsed()/N);
-
+    for (int* p : ptrs) {
+      delete p;
+    }
     std::cout << describe_objects<int>() << std::endl;
     clear_objects<int>();
     std::cout << describe_objects<int>() << std::endl;
@@ -205,7 +209,7 @@ TEST_F(ObjectPoolTest, get_perf) {
     const size_t N = 10000;
     std::vector<SilentObj*> new_list;
     new_list.reserve(N);
-    
+
     butil::Timer tm1, tm2;
 
     // warm up

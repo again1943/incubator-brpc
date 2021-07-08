@@ -73,6 +73,11 @@ COPTS = [
 }) + select({
     ":with_thrift": ["-DENABLE_THRIFT_FRAMED_PROTOCOL=1"],
     "//conditions:default": [""],
+}) + select({
+    # aarch64 char is unsigned by default, be to consistent with x86_64
+    # manually define it signed here
+    "@bazel_tools//src/conditions:linux_aarch64"  : ["-fsigned-char"],
+    "//conditions:default": [""],
 })
 
 LINKOPTS = [

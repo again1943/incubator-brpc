@@ -255,16 +255,6 @@ BTHREAD_UNIT_CASES= [
     srcs = [
      	case + ".cpp",
     ],
-    #exclude = [
-    #    "bthread_cond_unittest.cpp",
-    #    "bthread_execution_queue_unittest.cpp",
-    #    "bthread_dispatcher_unittest.cpp",
-    #    "bthread_fd_unittest.cpp",
-    #    "bthread_mutex_unittest.cpp",
-    #    "bthread_setconcurrency_unittest.cpp",
-    #    # glog CHECK die with a fatal error
-    #    "bthread_key_unittest.cpp"
-    #]),
     deps = [
         ":sstream_workaround",
         "//:brpc",
