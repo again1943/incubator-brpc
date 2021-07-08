@@ -28,6 +28,16 @@ http_archive(
 )
 
 http_archive(
+    name = "rules_foreign_cc",
+    sha256 = "c2cdcf55ffaf49366725639e45dedd449b8c3fe22b54e31625eb80ce3a240f1e",
+    strip_prefix = "rules_foreign_cc-0.1.0",
+    url = "https://github.com/bazelbuild/rules_foreign_cc/archive/0.1.0.zip",
+)
+load("@rules_foreign_cc//:workspace_definitions.bzl", "rules_foreign_cc_dependencies")
+
+rules_foreign_cc_dependencies()
+
+http_archive(
   name = "com_google_protobuf",
   strip_prefix = "protobuf-3.6.1.3",
   sha256 = "9510dd2afc29e7245e9e884336f848c8a6600a14ae726adb6befdb4f786f0be2",
@@ -39,6 +49,16 @@ http_archive(
     name = "com_github_gflags_gflags",
     strip_prefix = "gflags-46f73f88b18aee341538c0dfc22b1710a6abedef",
     url = "https://github.com/gflags/gflags/archive/46f73f88b18aee341538c0dfc22b1710a6abedef.tar.gz",
+    sha256 = "a8263376b409900dd46830e4e34803a170484707327854cc252fc5865275a57d",
+)
+
+all_content = """filegroup(name = "all", srcs = glob(["**"]), visibility = ["//visibility:public"])"""
+http_archive(
+  name = "com_github_gperftools_gperftools",
+  strip_prefix = "gperftools-2.8",
+  sha256 = "240deacdd628b6459671b83eb0c4db8e97baadf659f25b92e9a078d536bd513e",
+  urls = ["https://github.com/gperftools/gperftools/releases/download/gperftools-2.8/gperftools-2.8.tar.gz"],
+  build_file_content = all_content,
 )
 
 bind(
@@ -50,7 +70,8 @@ http_archive(
     name = "com_github_google_leveldb",
     build_file = "//:leveldb.BUILD",
     strip_prefix = "leveldb-a53934a3ae1244679f812d998a4f16f2c7f309a6",
-    url = "https://github.com/google/leveldb/archive/a53934a3ae1244679f812d998a4f16f2c7f309a6.tar.gz"
+    url = "https://github.com/google/leveldb/archive/a53934a3ae1244679f812d998a4f16f2c7f309a6.tar.gz",
+    sha256 = "3912ac36dbb264a62797d68687711c8024919640d89b6733f9342ada1d16cda1",
 )
 
 http_archive(
@@ -64,6 +85,7 @@ http_archive(
     name = "com_google_googletest",
     strip_prefix = "googletest-0fe96607d85cf3a25ac40da369db62bbee2939a5",
     url = "https://github.com/google/googletest/archive/0fe96607d85cf3a25ac40da369db62bbee2939a5.tar.gz",
+    sha256 = "80532b7a9c62945eed127a9cfa502f4b9f4af2a0c2329146026fd423e539f578",
 )
 
 new_local_repository(

@@ -29,12 +29,12 @@
 #undef _GNU_SOURCE
 
 #include "butil/time.h"
+#include <stdlib.h>                          // exit
+#include <pthread.h>                         // pthread_once
 
 #if defined(NO_CLOCK_GETTIME_IN_MAC)
 #include <mach/clock.h>                      // mach_absolute_time
 #include <mach/mach_time.h>                  // mach_timebase_info
-#include <pthread.h>                         // pthread_once
-#include <stdlib.h>                          // exit
 
 static mach_timebase_info_data_t s_timebase;
 static timespec s_init_time;
@@ -83,23 +83,35 @@ int64_t monotonic_time_ns() {
 
 namespace detail {
 
+ssize_t open_and_read_proc_file(const char* file, char* buf, size_t size) {
+  const int fd = open(file, O_RDONLY);
+  if (fd < 0) {
+    return -1;
+  }
+  const ssize_t n = read(fd, buf, size);
+  close(fd);
+  return n;
+}
+
 // read_cpu_frequency() is modified from source code of glibc.
 int64_t read_cpu_frequency(bool* invariant_tsc) {
+  int64_t result = 0;
+  char buf[4096];
+
+#if defined(ARCH_CPU_ARM_FAMILY)
+  ssize_t n = open_and_read_proc_file(
+        "/sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_cur_freq", buf, sizeof(buf));
+  if (n > 0) {
+    result = static_cast<int64_t>(atol(buf));
+  }
+#else
     /* We read the information from the /proc filesystem.  It contains at
        least one line like
        cpu MHz         : 497.840237
        or also
        cpu MHz         : 497.841
        We search for this line and convert the number in an integer.  */
-
-    const int fd = open("/proc/cpuinfo", O_RDONLY);
-    if (fd < 0) {
-        return 0;
-    }
-
-    int64_t result = 0;
-    char buf[4096];  // should be enough
-    const ssize_t n = read(fd, buf, sizeof(buf));
+    ssize_t n = open_and_read_proc_file("/proc/cpuinfo", buf, sizeof(buf));
     if (n > 0) {
         char *mhz = static_cast<char*>(memmem(buf, n, "cpu MHz", 7));
 
@@ -132,27 +144,37 @@ int64_t read_cpu_frequency(bool* invariant_tsc) {
 
         if (invariant_tsc) {
             char* flags_pos = static_cast<char*>(memmem(buf, n, "flags", 5));
-            *invariant_tsc = 
+            *invariant_tsc =
                 (flags_pos &&
                  memmem(flags_pos, buf + n - flags_pos, "constant_tsc", 12) &&
                  memmem(flags_pos, buf + n - flags_pos, "nonstop_tsc", 11));
         }
     }
-    close (fd);
+#endif
     return result;
+}
+
+static int64_t invariant_cpu_freq = -1;
+static pthread_once_t s_init_cpu_freq_once = PTHREAD_ONCE_INIT;
+
+static void InitCpuFrequency() {
+    bool invariant_tsc = false;
+    int64_t freq = read_cpu_frequency(&invariant_tsc);
+    if (!invariant_tsc || freq < 0) {
+        freq = 0;
+    }
+    invariant_cpu_freq = freq;
 }
 
 // Return value must be >= 0
 int64_t read_invariant_cpu_frequency() {
-    bool invariant_tsc = false;
-    const int64_t freq = read_cpu_frequency(&invariant_tsc);
-    if (!invariant_tsc || freq < 0) {
-        return 0;
-    }
-    return freq;
+  if (invariant_cpu_freq < 0 &&
+    pthread_once(&s_init_cpu_freq_once, InitCpuFrequency) != 0) {
+      exit(1);
+  }
+  return invariant_cpu_freq;
 }
 
-int64_t invariant_cpu_freq = -1;
 }  // namespace detail
 
 }  // namespace butil

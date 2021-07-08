@@ -213,6 +213,7 @@ TEST_F(BthreadTest, backtrace) {
     for (int i = 0; i < bt_cnt; ++i) {
         puts(text[i]);
     }
+    free(text);
 }
 
 void* show_self(void*) {
@@ -322,9 +323,14 @@ TEST_F(BthreadTest, small_threads) {
 }
 
 void* bthread_starter(void* void_counter) {
+    std::vector<bthread_t> th_list;
     while (!stop.load(butil::memory_order_relaxed)) {
         bthread_t th;
         EXPECT_EQ(0, bthread_start_urgent(&th, NULL, adding_func, void_counter));
+        th_list.push_back(th);
+    }
+    for (auto th : th_list) {
+      bthread_join(th, NULL);
     }
     return NULL;
 }

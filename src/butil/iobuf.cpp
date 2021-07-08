@@ -249,7 +249,7 @@ struct IOBuf::Block {
         check_abi();
         nshared.fetch_add(1, butil::memory_order_relaxed);
     }
-        
+
     void dec_ref() {
         check_abi();
         if (nshared.fetch_sub(1, butil::memory_order_release) == 1) {
@@ -708,14 +708,14 @@ void IOBuf::clear() {
         if (_sv.refs[0].block != NULL) {
             _sv.refs[0].block->dec_ref();
             reset_block_ref(_sv.refs[0]);
-                        
+
             if (_sv.refs[1].block != NULL) {
                 _sv.refs[1].block->dec_ref();
                 reset_block_ref(_sv.refs[1]);
             }
         }
     } else {
-        for (uint32_t i = 0; i < _bv.nref; ++i) { 
+        for (uint32_t i = 0; i < _bv.nref; ++i) {
             _bv.ref_at(i).block->dec_ref();
         }
         iobuf::release_blockref_array(_bv.refs, _bv.capacity());

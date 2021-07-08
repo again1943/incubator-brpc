@@ -181,6 +181,7 @@ void* client_thread(void* arg) {
         if (n < 0) {
             if (errno != EINTR) {
                 PLOG(FATAL) << "Fail to write fd=" << m->fd;
+                free(buf);
                 return NULL;
             }
         } else {
@@ -192,6 +193,7 @@ void* client_thread(void* arg) {
             }
         }
     }
+    free(buf);
     return NULL;
 }
 
@@ -227,7 +229,7 @@ TEST(DispatcherTest, dispatch_tasks) {
 #endif
         ASSERT_GT(epfd[i], 0);
     }
-    
+
     for (size_t i = 0; i < NCLIENT; ++i) {
         ASSERT_EQ(0, socketpair(AF_UNIX, SOCK_STREAM, 0, fds + 2 * i));
         SocketMeta* m = new SocketMeta;
@@ -256,7 +258,7 @@ TEST(DispatcherTest, dispatch_tasks) {
         cm[i]->bytes = 0;
         ASSERT_EQ(0, pthread_create(&cth[i], NULL, client_thread, cm[i]));
     }
-    
+
     ProfilerStart("dispatcher.prof");
     butil::Timer tm;
     tm.start();
@@ -314,5 +316,15 @@ TEST(DispatcherTest, dispatch_tasks) {
     }
     bthread::stop_and_join_epoll_threads();
     bthread_usleep(100000);
+
+    for (size_t i = 0; i < NCLIENT; ++i) {
+      free(sm[i]->buf);
+      delete sm[i];
+      delete cm[i];
+    }
+
+    for (size_t i = 0; i < NEPOLL; ++i) {
+      delete em[i];
+    }
 }
 } // namespace

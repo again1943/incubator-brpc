@@ -43,6 +43,11 @@ COPTS = [
 ] + select({
     "//:with_glog": ["-DBRPC_WITH_GLOG=1"],
     "//conditions:default": ["-DBRPC_WITH_GLOG=0"],
+}) + select({
+    # aarch64 char is unsigned by default, to be consistent with x86_64
+    # manually define it signed here
+    "@bazel_tools//src/conditions:linux_aarch64"  : ["-fsigned-char"],
+    "//conditions:default": [""],
 })
 
 LINKOPTS = [
@@ -224,27 +229,48 @@ cc_test(
     copts = COPTS,
 )
 
-cc_test(
-    name = "bthread_test",
-    srcs = glob([
-        "bthread_*_unittest.cpp",
+BTHREAD_UNIT_CASES= [
+  "bthread_butex_unittest",
+  "bthread_cond_unittest",
+  "bthread_countdown_event_unittest",
+  "bthread_dispatcher_unittest",
+  "bthread_execution_queue_unittest",
+  "bthread_fd_unittest",
+  "bthread_futex_unittest",
+  "bthread_id_unittest",
+  "bthread_key_unittest",
+  "bthread_list_unittest",
+  "bthread_mutex_unittest",
+  "bthread_ping_pong_unittest",
+  "bthread_rwlock_unittest",
+  "bthread_sched_yield_unittest",
+  "bthread_setconcurrency_unittest",
+  "bthread_timer_thread_unittest",
+  "bthread_unittest",
+  "bthread_work_stealing_queue_unittest",
+]
+
+[cc_test(
+    name = case,
+    srcs = [
+     	case + ".cpp",
     ],
-    exclude = [
-        "bthread_cond_unittest.cpp",
-        "bthread_execution_queue_unittest.cpp",
-        "bthread_dispatcher_unittest.cpp",
-        "bthread_fd_unittest.cpp",
-        "bthread_mutex_unittest.cpp",
-        "bthread_setconcurrency_unittest.cpp",
-        # glog CHECK die with a fatal error
-        "bthread_key_unittest.cpp"
-    ]),
+    #exclude = [
+    #    "bthread_cond_unittest.cpp",
+    #    "bthread_execution_queue_unittest.cpp",
+    #    "bthread_dispatcher_unittest.cpp",
+    #    "bthread_fd_unittest.cpp",
+    #    "bthread_mutex_unittest.cpp",
+    #    "bthread_setconcurrency_unittest.cpp",
+    #    # glog CHECK die with a fatal error
+    #    "bthread_key_unittest.cpp"
+    #]),
     deps = [
         ":sstream_workaround",
         "//:brpc",
+        "//gperftools:gperftools",
         "@com_google_googletest//:gtest",
         "@com_google_googletest//:gtest_main",
     ],
     copts = COPTS,
-)
-
+) for case in BTHREAD_UNIT_CASES]
