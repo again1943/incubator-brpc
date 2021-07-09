@@ -110,8 +110,14 @@ TEST(CondTest, sanity) {
         long delta = wake_time[i] - last_time - SIGNAL_INTERVAL_US;
         EXPECT_GT(wake_time[i], last_time);
         square_sum += delta * delta;
+#if not defined(NDEBUG)
         EXPECT_LT(labs(delta), 10000L) << "error[" << i << "]=" << delta << "="
             << wake_time[i] << " - " << last_time;
+#else
+        // Make the expect time larger under debug mode
+        EXPECT_LT(labs(delta), 20000L) << "error[" << i << "]=" << delta << "="
+            << wake_time[i] << " - " << last_time;
+#endif
     }
     printf("Average error is %fus\n", sqrt(square_sum / std::max(nbeforestop, 1UL)));
 

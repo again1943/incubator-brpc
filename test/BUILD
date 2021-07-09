@@ -50,7 +50,10 @@ COPTS = [
       # See https://github.com/apache/incubator-brpc/issues/845
       "-fno-gcse",
     ],
-    "//conditions:default": [""],
+    "//conditions:default": [
+      "-msse4",
+      "-msse4.2",
+    ],
 })
 
 LINKOPTS = [

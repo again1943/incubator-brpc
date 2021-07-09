@@ -303,10 +303,14 @@ TEST(FDTest, ping_pong) {
 #endif
     }
 
+// Address sanitizer reports stackoverflow of gperftools, disable
+// gperf sampling when running with asan
+#if not defined(__SANITIZE_ADDRESS__)
     ProfilerStart("ping_pong.prof");
+#endif
+
     butil::Timer tm;
     tm.start();
-
     for (size_t i = 0; i < NEPOLL; ++i) {
         EpollMeta *m = new EpollMeta;
         em[i] = m;
@@ -327,7 +331,11 @@ TEST(FDTest, ping_pong) {
         ASSERT_EQ(i + REP * NCLIENT, cm[i]->count);
     }
     tm.stop();
+
+#if not defined(__SANITIZE_ADDRESS__)
     ProfilerStop();
+#endif
+
     LOG(INFO) << "tid=" << REP*NCLIENT*1000000L/tm.u_elapsed();
     stop = true;
     for (size_t i = 0; i < NEPOLL; ++i) {
