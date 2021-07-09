@@ -44,9 +44,12 @@ COPTS = [
     "//:with_glog": ["-DBRPC_WITH_GLOG=1"],
     "//conditions:default": ["-DBRPC_WITH_GLOG=0"],
 }) + select({
-    # aarch64 char is unsigned by default, to be consistent with x86_64
-    # manually define it signed here
-    "@bazel_tools//src/conditions:linux_aarch64"  : ["-fsigned-char"],
+    "@bazel_tools//src/conditions:linux_aarch64"  : [
+      # aarch64 char is unsigned by default, to be consistent with x86_64
+      "-fsigned-char",
+      # See https://github.com/apache/incubator-brpc/issues/845
+      "-fno-gcse",
+    ],
     "//conditions:default": [""],
 })
 
@@ -206,7 +209,7 @@ cc_test(
     deps = [
         ":sstream_workaround",
         ":cc_test_proto",
-        "//:brpc",
+        "//:butil",
         "@com_google_googletest//:gtest",
     ],
     copts = COPTS,
@@ -257,9 +260,8 @@ BTHREAD_UNIT_CASES= [
     ],
     deps = [
         ":sstream_workaround",
-        "//:brpc",
+        "//:bthread",
         "//gperftools:gperftools",
-        "@com_google_googletest//:gtest",
         "@com_google_googletest//:gtest_main",
     ],
     copts = COPTS,
