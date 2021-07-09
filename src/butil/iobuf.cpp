@@ -389,7 +389,7 @@ IOBuf::Block* share_tls_block() {
 }
 
 // Return one block to TLS.
-inline void release_tls_block(IOBuf::Block *b) {
+void release_tls_block(IOBuf::Block *b) {
     if (!b) {
         return;
     }

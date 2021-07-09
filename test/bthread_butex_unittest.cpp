@@ -56,7 +56,12 @@ void* joiner(void* arg) {
             LOG(FATAL) << "fail to join thread_" << th - (bthread_t*)arg;
         }
         long elp = butil::gettimeofday_us() - t1;
+#if defined(__SANITIZE_ADDRESS__)
+        // Running in address sanitizer mode
+        EXPECT_LE(labs(elp - (th - (bthread_t*)arg + 1) * 100000L), 50000L)
+#else
         EXPECT_LE(labs(elp - (th - (bthread_t*)arg + 1) * 100000L), 15000L)
+#endif
             << "timeout when joining thread_" << th - (bthread_t*)arg;
         LOG(INFO) << "Joined thread " << *th << " at " << elp << "us ["
                   << bthread_self() << "]";
@@ -345,7 +350,7 @@ TEST(ButexTest, stop_after_slept) {
 TEST(ButexTest, stop_just_when_sleeping) {
     butil::Timer tm;
     const long SLEEP_MSEC = 100;
-    
+
     for (int i = 0; i < 2; ++i) {
         const bthread_attr_t attr =
             (i == 0 ? BTHREAD_ATTR_PTHREAD : BTHREAD_ATTR_NORMAL);
@@ -375,7 +380,7 @@ TEST(ButexTest, stop_before_sleeping) {
         bthread_t th;
         const bthread_attr_t attr =
             (i == 0 ? BTHREAD_ATTR_PTHREAD : BTHREAD_ATTR_NORMAL) | BTHREAD_NOSIGNAL;
-        
+
         tm.start();
         ASSERT_EQ(0, bthread_start_background(&th, &attr, sleeper,
                                               (void*)(SLEEP_MSEC*1000L)));

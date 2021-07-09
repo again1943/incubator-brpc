@@ -28,24 +28,8 @@ build:asan --copt=-fsanitize=address
 build:asan --copt=-O0
 build:asan --copt=-fno-omit-frame-pointer
 build:asan --copt=-DADDRESS_SANITIZER  # used by absl
+build:asan --copt=-U_FORTIFY_SOURCE  # disable "_FORTIFY_SOURCE requires compiling with optimization" warning
 build:asan --linkopt=-fsanitize=address
 build:asan --action_env=ASAN_OPTIONS=detect_leaks=1:color=always
 build:asan --action_env=LSAN_OPTIONS=report_objects=1
 build:asan --action_env=ASAN_OPTIONS=alloc_dealloc_mismatch=0
-
-build:tsan --strip=never
-build:tsan --copt=-fsanitize=thread
-build:tsan --copt=-fno-omit-frame-pointer
-build:tsan --linkopt=-fsanitize=thread
-# This is needed to address false positive problem with abseil.
-# https://github.com/google/sanitizers/issues/953
-build:tsan --test_env=TSAN_OPTIONS=report_atomic_races=0
-build:tsan --action_env=halt_on_error=1:second_deadlock_stack=1
-
-build:ubsan --strip=never
-build:ubsan --copt=-fsanitize=undefined
-build:ubsan --copt=-fno-omit-frame-pointer
-build:ubsan --copt=-DNDEBUG
-#build:ubsan --copt=-fno-sanitize=function,vptr
-build:ubsan --linkopt=-fsanitize=undefined
-build:ubsan --action_env=UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1

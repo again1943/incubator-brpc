@@ -218,7 +218,7 @@ namespace detail {
 extern int64_t read_invariant_cpu_frequency();
 
 inline uint64_t clock_cycles() {
-#if defined(ARCH_CPU_ARM_FAMILY)
+#if defined(ARCH_CPU_ARM_FAMILY) || defined (__aarch64__)
     uint32_t pmccntr;
     uint32_t pmuseren;
     uint32_t pmcntenset;
