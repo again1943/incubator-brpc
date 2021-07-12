@@ -56,9 +56,9 @@ void* joiner(void* arg) {
             LOG(FATAL) << "fail to join thread_" << th - (bthread_t*)arg;
         }
         long elp = butil::gettimeofday_us() - t1;
-#if defined(__SANITIZE_ADDRESS__)
+#if defined(__SANITIZE_ADDRESS__) || not defined(NDEBUG)
         // Running in address sanitizer mode
-        EXPECT_LE(labs(elp - (th - (bthread_t*)arg + 1) * 100000L), 50000L)
+        EXPECT_LE(labs(elp - (th - (bthread_t*)arg + 1) * 100000L), 150000L)
 #else
         EXPECT_LE(labs(elp - (th - (bthread_t*)arg + 1) * 100000L), 15000L)
 #endif

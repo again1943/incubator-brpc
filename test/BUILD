@@ -212,8 +212,9 @@ cc_test(
     deps = [
         ":sstream_workaround",
         ":cc_test_proto",
-        "//:butil",
+        "//:brpc",
         "@com_google_googletest//:gtest",
+        "@com_github_gflags_gflags//:gflags",
     ],
     copts = COPTS,
 )
@@ -229,7 +230,7 @@ cc_test(
     ]),
     deps = [
         ":sstream_workaround",
-        "//:bvar",
+        "//:brpc",
         "@com_google_googletest//:gtest",
     ],
     copts = COPTS,
@@ -266,6 +267,7 @@ BTHREAD_UNIT_CASES= [
         "//:bthread",
         "//gperftools:gperftools",
         "@com_google_googletest//:gtest_main",
+        "@com_github_gflags_gflags//:gflags",
     ],
     copts = COPTS,
 ) for case in BTHREAD_UNIT_CASES]
