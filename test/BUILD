@@ -34,8 +34,6 @@ COPTS = [
     "-Wno-unused-parameter",
     "-fno-omit-frame-pointer",
     "-DGFLAGS_NS=google",
-    # Use -fno-access-control instead of defining private/protected public
-    "-fno-access-control",
     "-DBAZEL_TEST=1",
     "-DBVAR_NOT_LINK_DEFAULT_VARIABLES",
     "-DUNIT_TEST",
@@ -45,13 +43,49 @@ COPTS = [
 }) + select({
     "@bazel_tools//src/conditions:linux_aarch64"  : [
       # aarch64 char is unsigned by default, to be consistent with x86_64
+      # manually specify it as signed char
       "-fsigned-char",
+      # gcse optimization makes brpc crash unser aarch64,
       # See https://github.com/apache/incubator-brpc/issues/845
       "-fno-gcse",
     ],
     "//conditions:default": [
       "-msse4",
       "-msse4.2",
+    ],
+}) + select({
+    # Clang is so amusing about "-faccess-control" flag.
+    # 1.  Before clang12, someone mistakenly changed it as "no-access-control"
+    #     without any test, thus if you really want to disable C++ access control,
+    #     you need to type "-fno-no-access-control". This was fixed in clang 12
+    #     under linux. See: https://reviews.llvm.org/D93104
+    #
+    # 2.  The clang compiler on MacOS is even more funny, the newest version of apple
+    #     clang, "Apple clang version 12.0.5 (clang-1205.0.22.11)", when you type
+    #     "clang --help |grep \"access-control\"", you get:
+    #          -fno-access-control
+    #          -fno-no-access-control  Disable C++ access control
+    #
+    #     Ok, it seems Apple does not fix the problem in clang12. We exptect the
+    #     "-fno-no-access-control" flag would at least work consisten with the
+    #     manaul.
+    #
+    #     But when you specify "-fno-no-access-control", you get:
+    #         "error: unknown argument: '-fno-access-control'"
+    #
+    #     And when you specify "-fno-access-control", Apple clang take it as you're
+    #     enforcing C++ access control. So you'll get all the access control violation
+    #     error in the unittest code.
+    #
+    #     Finally we give up all the attempts and rollback to use macro on MacOS to
+    #     make private/protected attributes accessible in our unittest.
+    ":darwin"  : [
+      "-Dprivate=public",
+      "-Dprotected=public",
+    ],
+    "//conditions:default": [
+      # Use -fno-access-control instead of macro for gcc
+      "-fno-access-control",
     ],
 })
 
@@ -226,7 +260,7 @@ cc_test(
     copts = COPTS,
 )
 
-BTHREAD_UNIT_CASES= [
+BTHREAD_UNIT_CASES = [
   "bthread_butex_unittest",
   "bthread_cond_unittest",
   "bthread_countdown_event_unittest",
@@ -255,8 +289,65 @@ BTHREAD_UNIT_CASES= [
     deps = [
         "//:bthread",
         "//gperftools:gperftools",
+        "@com_google_googletest//:gtest",
         "@com_google_googletest//:gtest_main",
         "@com_github_gflags_gflags//:gflags",
     ],
     copts = COPTS,
 ) for case in BTHREAD_UNIT_CASES]
+
+BRPC_UNIT_TESTS = [
+    "brpc_adaptive_class_unittest",
+    "brpc_builtin_service_unittest",
+    "brpc_channel_unittest",
+    "brpc_circuit_breaker_unittest",
+    "brpc_controller_unittest",
+    "brpc_esp_protocol_unittest",
+    "brpc_event_dispatcher_unittest",
+    "brpc_extension_unittest",
+    "brpc_grpc_protocol_unittest",
+    "brpc_h2_unsent_message_unittest",
+    "brpc_hpack_unittest",
+    "brpc_http_message_unittest",
+    "brpc_http_parser_unittest",
+    "brpc_http_rpc_protocol_unittest",
+    "brpc_http_status_code_unittest",
+    "brpc_hulu_pbrpc_protocol_unittest",
+    "brpc_input_messenger_unittest",
+    "brpc_load_balancer_unittest",
+    "brpc_memcache_unittest",
+    "brpc_mongo_protocol_unittest",
+    "brpc_naming_service_filter_unittest",
+    "brpc_naming_service_unittest",
+    "brpc_nova_pbrpc_protocol_unittest",
+    "brpc_prometheus_metrics_unittest",
+    "brpc_proto_unittest",
+    "brpc_protobuf_json_unittest",
+    "brpc_public_pbrpc_protocol_unittest",
+    "brpc_redis_unittest",
+    "brpc_repeated_field_unittest",
+    "brpc_rtmp_unittest",
+    "brpc_server_unittest",
+    "brpc_snappy_compress_unittest",
+    "brpc_socket_map_unittest",
+    "brpc_socket_unittest",
+    "brpc_sofa_pbrpc_protocol_unittest",
+    "brpc_ssl_unittest",
+    "brpc_streaming_rpc_unittest",
+    "brpc_uri_unittest",
+]
+
+[cc_test(
+    name = case,
+    srcs = [
+     	case + ".cpp",
+    ],
+    deps = [
+        "//:brpc",
+        #"//gperftools:gperftools",
+        #"@com_google_googletest//:gtest",
+        "@com_google_googletest//:gtest_main",
+        #"@com_github_gflags_gflags//:gflags",
+    ],
+    copts = COPTS,
+) for case in BRPC_UNIT_CASES]

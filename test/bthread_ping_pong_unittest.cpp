@@ -30,12 +30,12 @@
 #include "bthread/bthread.h"
 #include "butil/atomicops.h"
 
-namespace {
 DEFINE_int32(thread_num, 1, "#pairs of threads doing ping pong");
 DEFINE_bool(loop, false, "run until ctrl-C is pressed");
 DEFINE_bool(use_futex, false, "use futex instead of pipe");
 DEFINE_bool(use_butex, false, "use butex instead of pipe");
 
+namespace {
 void ALLOW_UNUSED (*ignore_sigpipe)(int) = signal(SIGPIPE, SIG_IGN);
 
 volatile bool stop = false;
