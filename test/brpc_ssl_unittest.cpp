@@ -38,14 +38,6 @@ namespace brpc {
 void ExtractHostnames(X509* x, std::vector<std::string>* hostnames);
 } // namespace brpc
 
-
-int main(int argc, char* argv[]) {
-    testing::InitGoogleTest(&argc, argv);
-    GFLAGS_NS::ParseCommandLineFlags(&argc, &argv, true);
-    brpc::GlobalInitializeOrDie();
-    return RUN_ALL_TESTS();
-}
-
 bool g_delete = false;
 const std::string EXP_REQUEST = "hello";
 const std::string EXP_RESPONSE = "world";
@@ -81,7 +73,24 @@ protected:
     virtual ~SSLTest(){};
     virtual void SetUp() {};
     virtual void TearDown() {};
+
+    static const char* kTestCert1Crt;
+    static const char* kTestCert1Key;
+    static const char* kTestCert2Crt;
+    static const char* kTestCert2Key;
 };
+
+#if BAZEL_TEST == 1
+    const char* SSLTest::kTestCert1Crt = "test/cert1.crt";
+    const char* SSLTest::kTestCert1Key = "test/cert1.key";
+    const char* SSLTest::kTestCert2Crt = "test/cert2.crt";
+    const char* SSLTest::kTestCert2Key = "test/cert2.key";
+#else
+    const char* SSLTest::kTestCert1Crt = "cert1.crt";
+    const char* kTestCert1Key = "cert1.key";
+    const char* SSLTest::kTestCert2Crt = "tcert2.crt";
+    const char* SSLTest::kTestCert2Key = "cert2.key";
+#endif
 
 void* RunClosure(void* arg) {
     google::protobuf::Closure* done = (google::protobuf::Closure*)arg;
@@ -109,13 +118,8 @@ TEST_F(SSLTest, sanity) {
     brpc::ServerOptions options;
 
     brpc::CertInfo cert;
-#if BAZEL_TEST == 1
-    cert.certificate = "test/cert1.crt";
-    cert.private_key = "test/cert1.key";
-#else
-    cert.certificate = "cert1.crt";
-    cert.private_key = "cert1.key";
-#endif
+    cert.certificate = kTestCert1Crt;
+    cert.private_key = kTestCert1Key;
     options.mutable_ssl_options()->default_cert = cert;
 
     EchoServiceImpl echo_svc;
@@ -219,15 +223,15 @@ TEST_F(SSLTest, ssl_sni) {
     brpc::ServerOptions options;
     {
         brpc::CertInfo cert;
-        cert.certificate = "cert1.crt";
-        cert.private_key = "cert1.key";
+        cert.certificate = kTestCert1Crt;
+        cert.private_key = kTestCert1Key;
         cert.sni_filters.push_back("cert1.com");
         options.mutable_ssl_options()->default_cert = cert;
     }
     {
         brpc::CertInfo cert;
-        cert.certificate = GetRawPemString("cert2.crt");
-        cert.private_key = GetRawPemString("cert2.key");
+        cert.certificate = GetRawPemString(kTestCert2Crt);
+        cert.private_key = GetRawPemString(kTestCert2Key);
         cert.sni_filters.push_back("*.cert2.com");
         options.mutable_ssl_options()->certs.push_back(cert);
     }
@@ -250,8 +254,8 @@ TEST_F(SSLTest, ssl_reload) {
     brpc::ServerOptions options;
     {
         brpc::CertInfo cert;
-        cert.certificate = "cert1.crt";
-        cert.private_key = "cert1.key";
+        cert.certificate = kTestCert1Crt;
+        cert.private_key = kTestCert1Key;
         cert.sni_filters.push_back("cert1.com");
         options.mutable_ssl_options()->default_cert = cert;
     }
@@ -263,8 +267,8 @@ TEST_F(SSLTest, ssl_reload) {
     CheckCert("cert2.com", "cert1");    // default cert
     {
         brpc::CertInfo cert;
-        cert.certificate = GetRawPemString("cert2.crt");
-        cert.private_key = GetRawPemString("cert2.key");
+        cert.certificate = GetRawPemString(kTestCert2Crt);
+        cert.private_key = GetRawPemString(kTestCert2Key);
         cert.sni_filters.push_back("cert2.com");
         ASSERT_EQ(0, server.AddCertificate(cert));
     }
@@ -272,16 +276,16 @@ TEST_F(SSLTest, ssl_reload) {
 
     {
         brpc::CertInfo cert;
-        cert.certificate = GetRawPemString("cert2.crt");
-        cert.private_key = GetRawPemString("cert2.key");
+        cert.certificate = GetRawPemString(kTestCert2Crt);
+        cert.private_key = GetRawPemString(kTestCert2Key);
         ASSERT_EQ(0, server.RemoveCertificate(cert));
     }
     CheckCert("cert2.com", "cert1");    // default cert after remove cert2
 
     {
         brpc::CertInfo cert;
-        cert.certificate = GetRawPemString("cert2.crt");
-        cert.private_key = GetRawPemString("cert2.key");
+        cert.certificate = GetRawPemString(kTestCert2Crt);
+        cert.private_key = GetRawPemString(kTestCert2Key);
         cert.sni_filters.push_back("cert2.com");
         std::vector<brpc::CertInfo> certs;
         certs.push_back(cert);
@@ -343,7 +347,7 @@ TEST_F(SSLTest, ssl_perf) {
     brpc::ChannelSSLOptions opt;
     SSL_CTX* cli_ctx = brpc::CreateClientSSLContext(opt);
     SSL_CTX* serv_ctx =
-            brpc::CreateServerSSLContext("cert1.crt", "cert1.key",
+            brpc::CreateServerSSLContext(kTestCert1Crt, kTestCert1Key,
                                          brpc::SSLOptions(), NULL);
     SSL* cli_ssl = brpc::CreateSSLSession(cli_ctx, 0, clifd, false);
 #if defined(SSL_CTRL_SET_TLSEXT_HOSTNAME) || defined(USE_MESALINK)
