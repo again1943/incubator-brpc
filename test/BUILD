@@ -34,9 +34,8 @@ COPTS = [
     "-Wno-unused-parameter",
     "-fno-omit-frame-pointer",
     "-DGFLAGS_NS=google",
-    "-Dprivate=public",
-    "-Dprotected=public",
-    "--include test/sstream_workaround.h",
+    # Use -fno-access-control instead of defining private/protected public
+    "-fno-access-control",
     "-DBAZEL_TEST=1",
     "-DBVAR_NOT_LINK_DEFAULT_VARIABLES",
     "-DUNIT_TEST",
@@ -195,13 +194,6 @@ cc_proto_library(
     visibility = ["//visibility:public"],
 )
 
-cc_library(
-    name = "sstream_workaround",
-    hdrs = [
-        "sstream_workaround.h",
-    ]
-)
-
 cc_test(
     name = "butil_test",
     srcs = TEST_BUTIL_SOURCES + [
@@ -210,7 +202,6 @@ cc_test(
         "test_switches.h",
     ],
     deps = [
-        ":sstream_workaround",
         ":cc_test_proto",
         "//:brpc",
         "@com_google_googletest//:gtest",
@@ -229,7 +220,6 @@ cc_test(
         "bvar_recorder_unittest.cpp",
     ]),
     deps = [
-        ":sstream_workaround",
         "//:brpc",
         "@com_google_googletest//:gtest",
     ],
@@ -263,7 +253,6 @@ BTHREAD_UNIT_CASES= [
      	case + ".cpp",
     ],
     deps = [
-        ":sstream_workaround",
         "//:bthread",
         "//gperftools:gperftools",
         "@com_google_googletest//:gtest_main",

@@ -18,8 +18,13 @@ configure_make(
     make_commands = ["make -j12 install-libLTLIBRARIES install-perftoolsincludeHEADERS"],
     shared_libraries = select ({
         ":darwin" : [ "libtcmalloc_and_profiler.dylib",],
-        "//conditions:default": [ "libtcmalloc_and_profiler.so",],
+        "//conditions:default": [],
     }),
+    static_libraries = select ({
+        ":darwin" : [],
+        "//conditions:default": [ "libtcmalloc_and_profiler.a",],
+    }),
+
 )
 
 # Workaround for https://github.com/bazelbuild/rules_foreign_cc/issues/227
