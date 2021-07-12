@@ -267,8 +267,8 @@ TEST_F(SSLTest, ssl_reload) {
     CheckCert("cert2.com", "cert1");    // default cert
     {
         brpc::CertInfo cert;
-        cert.certificate = GetRawPemString("cert2.crt");
-        cert.private_key = GetRawPemString("cert2.key");
+        cert.certificate = GetRawPemString(kTestCert2Crt);
+        cert.private_key = GetRawPemString(kTestCert2Key);
         cert.sni_filters.push_back("cert2.com");
         ASSERT_EQ(0, server.AddCertificate(cert));
     }
@@ -276,16 +276,16 @@ TEST_F(SSLTest, ssl_reload) {
 
     {
         brpc::CertInfo cert;
-        cert.certificate = GetRawPemString("cert2.crt");
-        cert.private_key = GetRawPemString("cert2.key");
+        cert.certificate = GetRawPemString(kTestCert2Crt);
+        cert.private_key = GetRawPemString(kTestCert2Key);
         ASSERT_EQ(0, server.RemoveCertificate(cert));
     }
     CheckCert("cert2.com", "cert1");    // default cert after remove cert2
 
     {
         brpc::CertInfo cert;
-        cert.certificate = GetRawPemString("cert2.crt");
-        cert.private_key = GetRawPemString("cert2.key");
+        cert.certificate = GetRawPemString(kTestCert2Crt);
+        cert.private_key = GetRawPemString(kTestCert2Key);
         cert.sni_filters.push_back("cert2.com");
         std::vector<brpc::CertInfo> certs;
         certs.push_back(cert);
