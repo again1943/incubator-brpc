@@ -51,6 +51,7 @@
 #include "brpc/channel.h"
 #include "brpc/socket_map.h"
 #include "brpc/controller.h"
+#include "brpc_test_uti.h"
 #include "echo.pb.h"
 #include "v1.pb.h"
 #include "v2.pb.h"
@@ -1077,6 +1078,8 @@ TEST_F(ServerTest, logoff_and_multiple_start) {
     brpc::Server server;
     ASSERT_EQ(0, server.AddService(&echo_svc,
                                    brpc::SERVER_DOESNT_OWN_SERVICE));
+    int port = 9876;
+    EXPECT_TRUE(brpc::test::FindUnusedTcpPort(&port));
     ASSERT_EQ(0, str2endpoint("127.0.0.1:9876", &ep));
     
     // Server::Stop(-1)

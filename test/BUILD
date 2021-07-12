@@ -213,10 +213,11 @@ proto_library(
     srcs = glob([
         "*.proto",
       ],
-      exclude = [
-          "echo.proto",
-      ]
     ),
+    strip_import_prefix = "/test",
+    deps = [
+      "//:brpc_idl_options_proto",
+    ],
     visibility = ["//visibility:public"],
 )
 
@@ -296,7 +297,17 @@ BTHREAD_UNIT_CASES = [
     copts = COPTS,
 ) for case in BTHREAD_UNIT_CASES]
 
-BRPC_UNIT_TESTS = [
+cc_library(
+  name = "test_util",
+  srcs = [
+    "brpc_test_util.cpp",
+  ],
+  hdrs = [
+    "brpc_test_util.h",
+  ],
+)
+
+BRPC_UNIT_CASES = [
     "brpc_adaptive_class_unittest",
     "brpc_builtin_service_unittest",
     "brpc_channel_unittest",
@@ -343,11 +354,16 @@ BRPC_UNIT_TESTS = [
      	case + ".cpp",
     ],
     deps = [
+        ":cc_test_proto",
+        ":test_util",
         "//:brpc",
-        #"//gperftools:gperftools",
+        "//gperftools:gperftools",
         #"@com_google_googletest//:gtest",
         "@com_google_googletest//:gtest_main",
         #"@com_github_gflags_gflags//:gflags",
     ],
     copts = COPTS,
+    data = [
+        ":jsonout",
+    ],
 ) for case in BRPC_UNIT_CASES]

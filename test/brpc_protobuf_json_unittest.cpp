@@ -571,7 +571,11 @@ TEST_F(ProtobufJsonTest, json_to_pb_encode_decode_perf_case) {
 }
 
 TEST_F(ProtobufJsonTest, json_to_pb_complex_perf_case) {
+#if BAZEL_TEST == 1
+    std::ifstream in("test/jsonout", std::ios::in);
+#else
     std::ifstream in("jsonout", std::ios::in);
+#endif
     std::ostringstream tmp;
     tmp << in.rdbuf();
     butil::IOBuf buf;
@@ -605,7 +609,11 @@ TEST_F(ProtobufJsonTest, json_to_pb_complex_perf_case) {
 }
 
 TEST_F(ProtobufJsonTest, json_to_pb_to_string_complex_perf_case) {
+#if BAZEL_TEST == 1
+    std::ifstream in("test/jsonout", std::ios::in);
+#else
     std::ifstream in("jsonout", std::ios::in);
+#endif
     std::ostringstream tmp;
     tmp << in.rdbuf();
     std::string info3 = tmp.str();
@@ -1308,8 +1316,11 @@ TEST_F(ProtobufJsonTest, pb_to_json_encode_decode_perf_case) {
 }
 
 TEST_F(ProtobufJsonTest, pb_to_json_complex_perf_case) {
-
+#if BAZEL_TEST == 1
+    std::ifstream in("test/jsonout", std::ios::in);
+#else
     std::ifstream in("jsonout", std::ios::in);
+#endif
     std::ostringstream tmp;
     tmp << in.rdbuf();
     std::string info3 = tmp.str();
@@ -1349,7 +1360,11 @@ TEST_F(ProtobufJsonTest, pb_to_json_complex_perf_case) {
 }
 
 TEST_F(ProtobufJsonTest, pb_to_json_to_string_complex_perf_case) {
+#if BAZEL_TEST == 1
+    std::ifstream in("test/jsonout", std::ios::in);
+#else
     std::ifstream in("jsonout", std::ios::in);
+#endif
     std::ostringstream tmp;
     tmp << in.rdbuf();
     std::string info3 = tmp.str();

@@ -63,12 +63,6 @@ DECLARE_bool(rpcz_hex_log_id);
 DECLARE_int32(idle_timeout_second);
 } // namespace rpc
 
-int main(int argc, char* argv[]) {
-    brpc::FLAGS_idle_timeout_second = 0;
-    testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
-}
-
 class EchoServiceImpl : public test::EchoService {
 public:
     EchoServiceImpl() {}
