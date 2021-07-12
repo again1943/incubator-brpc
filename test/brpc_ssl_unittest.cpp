@@ -109,8 +109,13 @@ TEST_F(SSLTest, sanity) {
     brpc::ServerOptions options;
 
     brpc::CertInfo cert;
+#if BAZEL_TEST == 1
+    cert.certificate = "test/cert1.crt";
+    cert.private_key = "test/cert1.key";
+#else
     cert.certificate = "cert1.crt";
     cert.private_key = "cert1.key";
+#endif
     options.mutable_ssl_options()->default_cert = cert;
 
     EchoServiceImpl echo_svc;

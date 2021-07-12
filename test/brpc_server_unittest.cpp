@@ -51,7 +51,7 @@
 #include "brpc/channel.h"
 #include "brpc/socket_map.h"
 #include "brpc/controller.h"
-#include "brpc_test_uti.h"
+#include "brpc_test_util.h"
 #include "echo.pb.h"
 #include "v1.pb.h"
 #include "v2.pb.h"
@@ -1080,14 +1080,15 @@ TEST_F(ServerTest, logoff_and_multiple_start) {
                                    brpc::SERVER_DOESNT_OWN_SERVICE));
     int port = 9876;
     EXPECT_TRUE(brpc::test::FindUnusedTcpPort(&port));
-    ASSERT_EQ(0, str2endpoint("127.0.0.1:9876", &ep));
-    
+    std::string addr = butil::string_printf("127.0.0.1:%d", port);
+    ASSERT_EQ(0, str2endpoint(addr.c_str(), &ep));
+
     // Server::Stop(-1)
     {
         ASSERT_EQ(0, server.Start(ep, NULL));
         bthread_t tid;
         const int64_t old_count = echo_svc.count.load(butil::memory_order_relaxed);
-        google::protobuf::Closure* thrd_func = 
+        google::protobuf::Closure* thrd_func =
             brpc::NewCallback(SendSleepRPC, ep, 100, true);
         EXPECT_EQ(0, bthread_start_background(&tid, NULL, RunClosure, thrd_func));
         while (echo_svc.count.load(butil::memory_order_relaxed) == old_count) {
@@ -1113,7 +1114,7 @@ TEST_F(ServerTest, logoff_and_multiple_start) {
         while (echo_svc.count.load(butil::memory_order_relaxed) == old_count) {
             bthread_usleep(1000);
         }
-        
+
         timer.start();
         ASSERT_EQ(0, server.Stop(0));
         ASSERT_EQ(0, server.Join());

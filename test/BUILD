@@ -365,5 +365,9 @@ BRPC_UNIT_CASES = [
     copts = COPTS,
     data = [
         ":jsonout",
+        ":cert1.crt",
+        ":cert1.key",
+        ":cert2.crt",
+        ":cert2.key",
     ],
 ) for case in BRPC_UNIT_CASES]
