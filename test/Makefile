@@ -18,7 +18,7 @@
 NEED_GPERFTOOLS=1
 NEED_GTEST=1
 include ../config.mk
-CPPFLAGS+=-DBTHREAD_USE_FAST_PTHREAD_MUTEX -D__const__= -D_GNU_SOURCE -DUSE_SYMBOLIZE -DNO_TCMALLOC -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS -D__STDC_CONSTANT_MACROS -DUNIT_TEST -Dprivate=public -Dprotected=public -DBVAR_NOT_LINK_DEFAULT_VARIABLES --include sstream_workaround.h
+CPPFLAGS+=-DBTHREAD_USE_FAST_PTHREAD_MUTEX -D__const__= -D_GNU_SOURCE -DUSE_SYMBOLIZE -DNO_TCMALLOC -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS -D__STDC_CONSTANT_MACROS -DUNIT_TEST -fno-access-control -DBVAR_NOT_LINK_DEFAULT_VARIABLES
 CXXFLAGS=$(CPPFLAGS) -pipe -Wall -W -fPIC -fstrict-aliasing -Wno-invalid-offsetof -Wno-unused-parameter -fno-omit-frame-pointer -std=c++0x
 
 #required by butil/crc32.cc to boost performance for 10x
@@ -220,7 +220,7 @@ else ifeq ($(SYSTEM),Darwin)
 	$(CXX) -o $@ $(LIBPATHS) $(SOPATHS) $^ $(STATIC_LINKINGS) $(UT_DYNAMIC_LINKINGS)
 endif
 
-brpc_%_unittest:$(TEST_PROTO_OBJS) brpc_%_unittest.o | libbrpc.dbg.$(SOEXT)
+brpc_%_unittest:$(TEST_PROTO_OBJS) brpc_test_util.o brpc_%_unittest.o | libbrpc.dbg.$(SOEXT)
 	@echo "> Linking $@"
 ifeq ($(SYSTEM),Linux)
 	$(CXX) -o $@ $(LIBPATHS) $(SOPATHS) -Xlinker "-(" $^ -Xlinker "-)" $(STATIC_LINKINGS) $(UT_DYNAMIC_LINKINGS)
@@ -237,6 +237,10 @@ baidu_time_unittest.o:baidu_time_unittest.cpp | libbrpc.dbg.$(SOEXT)
 	$(CXX) -c $(HDRPATHS) -O2 $(CXXFLAGS) $< -o $@
 
 brpc_h2_unsent_message_unittest.o:brpc_h2_unsent_message_unittest.cpp | libbrpc.dbg.$(SOEXT)
+	@echo "> Compiling $@"
+	$(CXX) -c $(HDRPATHS) -O2 $(CXXFLAGS) $< -o $@
+
+brpc_test_util.o:brpc_test_util.cpp
 	@echo "> Compiling $@"
 	$(CXX) -c $(HDRPATHS) -O2 $(CXXFLAGS) $< -o $@
 
