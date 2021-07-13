@@ -243,6 +243,7 @@ cc_test(
         "@com_github_gflags_gflags//:gflags",
     ],
     copts = COPTS,
+    linkstatic = True,
 )
 
 # CaseName => has_self_defined_main_function
@@ -264,47 +265,46 @@ BVAR_UNIT_CASES = {
         case[0] + ".cpp"
     ],
     deps = [
-        "//:brpc",
+        "//:bvar",
         "@com_google_googletest//:gtest" if case[1] else "@com_google_googletest//:gtest_main",
     ],
     copts = COPTS,
 ) for case in BVAR_UNIT_CASES.items()]
 
-BTHREAD_UNIT_CASES = [
-  "bthread_butex_unittest",
-  "bthread_cond_unittest",
-  "bthread_countdown_event_unittest",
-  "bthread_dispatcher_unittest",
-  "bthread_execution_queue_unittest",
-  "bthread_fd_unittest",
-  "bthread_futex_unittest",
-  "bthread_id_unittest",
-  "bthread_key_unittest",
-  "bthread_list_unittest",
-  "bthread_mutex_unittest",
-  "bthread_ping_pong_unittest",
-  "bthread_rwlock_unittest",
-  "bthread_sched_yield_unittest",
-  "bthread_setconcurrency_unittest",
-  "bthread_timer_thread_unittest",
-  "bthread_unittest",
-  "bthread_work_stealing_queue_unittest",
-]
+BTHREAD_UNIT_CASES = {
+  "bthread_butex_unittest"                  : False,
+  "bthread_cond_unittest"                   : False,
+  "bthread_countdown_event_unittest"        : False,
+  "bthread_dispatcher_unittest"             : False,
+  "bthread_execution_queue_unittest"        : False,
+  "bthread_fd_unittest"                     : False,
+  "bthread_futex_unittest"                  : False,
+  "bthread_id_unittest"                     : False,
+  "bthread_key_unittest"                    : False,
+  "bthread_list_unittest"                   : False,
+  "bthread_mutex_unittest"                  : False,
+  "bthread_ping_pong_unittest"              : False,
+  "bthread_rwlock_unittest"                 : False,
+  "bthread_sched_yield_unittest"            : False,
+  "bthread_setconcurrency_unittest"         : False,
+  "bthread_timer_thread_unittest"           : False,
+  "bthread_unittest"                        : False,
+  "bthread_work_stealing_queue_unittest"    : False,
+}
 
 [cc_test(
-    name = case,
+    name = case[0],
     srcs = [
-     	case + ".cpp",
+     	case[0] + ".cpp",
     ],
     deps = [
         "//:bthread",
         "//gperftools:gperftools",
-        "@com_google_googletest//:gtest",
-        "@com_google_googletest//:gtest_main",
-        "@com_github_gflags_gflags//:gflags",
+        "@com_google_googletest//:gtest" if case[1] else "@com_google_googletest//:gtest_main",
     ],
     copts = COPTS,
-) for case in BTHREAD_UNIT_CASES]
+    linkstatic = True,
+) for case in BTHREAD_UNIT_CASES.items()]
 
 cc_library(
   name = "test_util",
@@ -379,4 +379,5 @@ BRPC_UNIT_CASES = {
         ":cert2.crt",
         ":cert2.key",
     ],
+    linkstatic = True,
 ) for case in BRPC_UNIT_CASES.items()]
