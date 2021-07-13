@@ -39,8 +39,7 @@ bool FindUnusedTcpPort(int* port) {
   }
 
   int enable_socket_reuse = 1;
-  if (setsockopt(
-    fd, SOL_SOCKET, SO_REUSEADDR, &enable_socket_reuse, sizeof(int)) < 0) {
+  if (setsockopt(fd, SOL_SOCKET, SO_REUSEPORT, &enable_socket_reuse, sizeof(int)) < 0) {
     close(fd);
     return false;
   }
