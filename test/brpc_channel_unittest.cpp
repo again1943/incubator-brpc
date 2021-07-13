@@ -916,7 +916,7 @@ protected:
         tm.start();
         CallMethod(&channel, &cntl, &req, &res, async);
         tm.stop();
-        EXPECT_LT(labs(tm.u_elapsed() - carg.sleep_before_cancel_us), 10000);
+        EXPECT_LT(labs(tm.u_elapsed() - carg.sleep_before_cancel_us), 15000);
         ASSERT_EQ(0, pthread_join(th, NULL));
         EXPECT_EQ(ECANCELED, cntl.ErrorCode());
         EXPECT_EQ(0, cntl.sub_count());
@@ -999,7 +999,7 @@ protected:
         tm.start();
         CallMethod(&channel, &cntl, &req, &res, async);
         tm.stop();
-        EXPECT_LT(labs(tm.u_elapsed() - carg.sleep_before_cancel_us), 10000);
+        EXPECT_LT(labs(tm.u_elapsed() - carg.sleep_before_cancel_us), 15000);
         ASSERT_EQ(0, pthread_join(th, NULL));
         EXPECT_EQ(ECANCELED, cntl.ErrorCode());
         EXPECT_EQ(1, cntl.sub_count());
