@@ -21,6 +21,12 @@ include ../config.mk
 CPPFLAGS+=-DBTHREAD_USE_FAST_PTHREAD_MUTEX -D__const__= -D_GNU_SOURCE -DUSE_SYMBOLIZE -DNO_TCMALLOC -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS -D__STDC_CONSTANT_MACROS -DUNIT_TEST -fno-access-control -DBVAR_NOT_LINK_DEFAULT_VARIABLES
 CXXFLAGS=$(CPPFLAGS) -pipe -Wall -W -fPIC -fstrict-aliasing -Wno-invalid-offsetof -Wno-unused-parameter -fno-omit-frame-pointer -std=c++0x
 
+# aarch64 char is unsigned by default, to be consistent with x86_64
+# about gcse, see https://github.com/apache/incubator-brpc/issues/845
+ifeq ($(shell uname -p), aarch64)
+    CXXFLAGS+=-fsigned-char -fno-gcse
+endif
+
 #required by butil/crc32.cc to boost performance for 10x
 ifeq ($(shell test $(GCC_VERSION) -ge 40400; echo $$?),0)
  ifeq ($(shell uname -p), x86_64)

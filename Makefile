@@ -39,6 +39,12 @@ ifeq ($(SYSTEM),Darwin)
     SOEXT = dylib
 endif
 
+# aarch64 char is unsigned by default, to be consistent with x86_64
+# about gcse, see https://github.com/apache/incubator-brpc/issues/845
+ifeq ($(shell uname -p), aarch64)
+    CXXFLAGS+=-fsigned-char -fno-gcse
+endif
+
 #required by butil/crc32.cc to boost performance for 10x
 ifeq ($(shell test $(GCC_VERSION) -ge 40400; echo $$?),0)
  ifeq ($(shell uname -p), x86_64)

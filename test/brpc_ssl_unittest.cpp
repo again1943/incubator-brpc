@@ -88,7 +88,7 @@ protected:
 #else
     const char* SSLTest::kTestCert1Crt = "cert1.crt";
     const char* SSLTest::kTestCert1Key = "cert1.key";
-    const char* SSLTest::kTestCert2Crt = "tcert2.crt";
+    const char* SSLTest::kTestCert2Crt = "cert2.crt";
     const char* SSLTest::kTestCert2Key = "cert2.key";
 #endif
 
