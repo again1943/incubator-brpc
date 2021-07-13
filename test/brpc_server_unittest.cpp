@@ -1307,18 +1307,22 @@ TEST_F(ServerTest, base64_to_string) {
     // 1. Client sets pb_bytes_to_base64 and server also sets pb_bytes_to_base64
     // 2. Client sets pb_bytes_to_base64, but server doesn't set pb_bytes_to_base64
     for (int i = 0; i < 2; ++i) {
+        int port = 8613;
+        EXPECT_TRUE(brpc::test::FindUnusedTcpPort(&port));
+
         brpc::Server server;
         EchoServiceImpl echo_svc;
         brpc::ServiceOptions service_opt;
         service_opt.pb_bytes_to_base64 = (i == 0);
         ASSERT_EQ(0, server.AddService(&echo_svc,
                                        service_opt));
-        ASSERT_EQ(0, server.Start(8613, NULL));
+        ASSERT_EQ(0, server.Start(port, NULL));
 
         brpc::Channel chan;
         brpc::ChannelOptions opt;
         opt.protocol = brpc::PROTOCOL_HTTP;
-        ASSERT_EQ(0, chan.Init("localhost:8613", &opt));
+        std::string addr = butil::string_printf("localhost:%d", port);
+        ASSERT_EQ(0, chan.Init(addr.c_str(), &opt));
         brpc::Controller cntl;
         cntl.http_request().uri() = "/EchoService/BytesEcho" +
                 butil::string_printf("%d", i + 1);
@@ -1339,9 +1343,11 @@ TEST_F(ServerTest, base64_to_string) {
 TEST_F(ServerTest, too_big_message) {
     EchoServiceImpl echo_svc;
     brpc::Server server;
+    int port = 8613;
+    EXPECT_TRUE(brpc::test::FindUnusedTcpPort(&port));
     ASSERT_EQ(0, server.AddService(&echo_svc,
                                    brpc::SERVER_DOESNT_OWN_SERVICE));
-    ASSERT_EQ(0, server.Start(8613, NULL));
+    ASSERT_EQ(0, server.Start(port, NULL));
 
 #if !BRPC_WITH_GLOG
     logging::StringSink log_str;
@@ -1349,7 +1355,8 @@ TEST_F(ServerTest, too_big_message) {
 #endif
 
     brpc::Channel chan;
-    ASSERT_EQ(0, chan.Init("localhost:8613", NULL));
+    std::string addr = butil::string_printf("localhost:%d", port);
+    ASSERT_EQ(0, chan.Init(addr.c_str(), NULL));
     brpc::Controller cntl;
     test::EchoRequest req;
     test::EchoResponse res;
@@ -1372,7 +1379,8 @@ TEST_F(ServerTest, too_big_message) {
 }
 
 TEST_F(ServerTest, max_concurrency) {
-    const int port = 9200;
+    int port = 9200;
+    EXPECT_TRUE(brpc::test::FindUnusedTcpPort(&port));
     brpc::Server server1;
     EchoServiceImpl service1;
     ASSERT_EQ(0, server1.AddService(&service1, brpc::SERVER_DOESNT_OWN_SERVICE));
@@ -1406,7 +1414,7 @@ TEST_F(ServerTest, max_concurrency) {
 
     bthread_usleep(20000);
     LOG(INFO) << "Send other requests";
-    
+
     brpc::Controller cntl3;
     cntl3.http_request().uri() = "/EchoService/Echo";
     cntl3.http_request().set_method(brpc::HTTP_METHOD_POST);
