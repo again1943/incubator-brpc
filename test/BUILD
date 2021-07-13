@@ -369,7 +369,7 @@ BRPC_UNIT_CASES = {
         "//:brpc",
         "//gperftools:gperftools",
         #"@com_github_gflags_gflags//:gflags",
-        "@com_google_googletest//:gtest_main" if case[1] else "@com_google_googletest//:gtest",
+        "@com_google_googletest//:gtest" if case[1] else "@com_google_googletest//:gtest_main",
     ],
     copts = COPTS,
     data = [
