@@ -238,9 +238,9 @@ cc_test(
     ],
     deps = [
         ":cc_test_proto",
-        "//:brpc",
+        "//:butil",
+        "//:bthread",
         "@com_google_googletest//:gtest",
-        "@com_github_gflags_gflags//:gflags",
     ],
     copts = COPTS,
     linkstatic = True,

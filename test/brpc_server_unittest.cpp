@@ -1194,7 +1194,7 @@ TEST_F(ServerTest, logoff_and_multiple_start) {
         ASSERT_EQ(0, server.Stop(1000));
         ASSERT_EQ(0, server.Join());
         timer.stop();
-        EXPECT_TRUE(labs(timer.m_elapsed() - 100) < 15) << timer.m_elapsed();
+        EXPECT_LE(labs(timer.m_elapsed() - 100), 15) << timer.m_elapsed();
         bthread_join(tid, NULL);
     }
 }
