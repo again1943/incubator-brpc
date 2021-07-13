@@ -957,14 +957,14 @@ protected:
         tm.start();
         CallMethod(&channel, &cntl, &req, &res, async);
         tm.stop();
-        EXPECT_LT(labs(tm.u_elapsed() - carg.sleep_before_cancel_us), 10000);
+        EXPECT_LT(labs(tm.u_elapsed() - carg.sleep_before_cancel_us), 15000);
         ASSERT_EQ(0, pthread_join(th, NULL));
         EXPECT_EQ(ECANCELED, cntl.ErrorCode());
         EXPECT_EQ(NCHANS, (size_t)cntl.sub_count());
         for (int i = 0; i < cntl.sub_count(); ++i) {
             EXPECT_EQ(ECANCELED, cntl.sub(i)->ErrorCode()) << "i=" << i;
         }
-        EXPECT_LT(labs(cntl.latency_us() - carg.sleep_before_cancel_us), 10000);
+        EXPECT_LT(labs(cntl.latency_us() - carg.sleep_before_cancel_us), 15000);
         StopAndJoin();
     }
 
