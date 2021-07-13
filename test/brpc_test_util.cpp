@@ -61,6 +61,7 @@ bool FindUnusedTcpPort(int* port) {
         continue;
     }
     has_available_port = true;
+    *port = candidate_port;
     break;
   }
 
