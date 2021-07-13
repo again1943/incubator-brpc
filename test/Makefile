@@ -23,12 +23,15 @@ CXXFLAGS=$(CPPFLAGS) -pipe -Wall -W -fPIC -fstrict-aliasing -Wno-invalid-offseto
 
 #required by butil/crc32.cc to boost performance for 10x
 ifeq ($(shell test $(GCC_VERSION) -ge 40400; echo $$?),0)
-	CXXFLAGS+=-msse4 -msse4.2
+ ifeq ($(shell uname -p), x86_64)
+  CXXFLAGS+=-msse4 -msse4.2
+ endif
 endif
+
 #not solved yet
 ifeq ($(CC),gcc)
  ifeq ($(shell test $(GCC_VERSION) -ge 70000; echo $$?),0)
-	CXXFLAGS+=-Wno-aligned-new
+  CXXFLAGS+=-Wno-aligned-new
  endif
 endif
 
