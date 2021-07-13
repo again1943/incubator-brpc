@@ -24,6 +24,7 @@
 #include <fstream>
 #include <gtest/gtest.h>
 #include <google/protobuf/descriptor.h>
+#include "butil/string_printf.h"
 #include "butil/time.h"
 #include "butil/macros.h"
 #include "butil/fd_guard.h"
@@ -169,16 +170,21 @@ protected:
 };
 
 TEST_F(ServerTest, sanity) {
+    int port = 8613;
+    EXPECT_TRUE(brpc::test::FindUnusedTcpPort(&port));
+    std::string addr;
     {
         brpc::Server server;
         ASSERT_EQ(-1, server.Start("127.0.0.1:12345:asdf", NULL));
-        ASSERT_EQ(-1, server.Start("127.0.0.1:99999", NULL)); 
-        ASSERT_EQ(0, server.Start("127.0.0.1:8613", NULL));
+        ASSERT_EQ(-1, server.Start("127.0.0.1:99999", NULL));
+        addr = butil::string_printf("127.0.0.1:%d", port);
+        ASSERT_EQ(0, server.Start(addr.c_str(), NULL));
     }
     {
         brpc::Server server;
         // accept hostname as well.
-        ASSERT_EQ(0, server.Start("localhost:8613", NULL));
+        addr = butil::string_printf("localhost:%d", port);
+        ASSERT_EQ(0, server.Start(addr.c_str(), NULL));
     }
     {
         brpc::Server server;
@@ -195,17 +201,20 @@ TEST_F(ServerTest, sanity) {
     {
         brpc::Server server;
         brpc::ServerOptions options;
-        options.internal_port = 8613;          // The same as service port
-        ASSERT_EQ(-1, server.Start("127.0.0.1:8613", &options));
+        options.internal_port = port;          // The same as service port
+        addr = butil::string_printf("localhost:%d", port);
+        ASSERT_EQ(-1, server.Start(addr.c_str(), &options));
         ASSERT_FALSE(server.IsRunning());      // Revert server's status
         // And release the listen port
-        ASSERT_EQ(0, server.Start("127.0.0.1:8613", NULL));
+        ASSERT_EQ(0, server.Start(addr.c_str(), NULL));
     }
 
     butil::EndPoint ep;
     MyAuthenticator auth;
     brpc::Server server;
-    ASSERT_EQ(0, str2endpoint("127.0.0.1:8613", &ep));
+    addr = butil::string_printf("localhost:%d", port);
+    LOG(INFO) << addr;
+    ASSERT_EQ(0, str2endpoint(addr.c_str(), &ep));
     brpc::ServerOptions opt;
     opt.auth = &auth;
     ASSERT_EQ(0, server.Start(ep, &opt));
@@ -229,8 +238,11 @@ TEST_F(ServerTest, sanity) {
 }
 
 TEST_F(ServerTest, invalid_protocol_in_enabled_protocols) {
+    int port = 8613;
+    EXPECT_TRUE(brpc::test::FindUnusedTcpPort(&port));
+    std::string addr = butil::string_printf("127.0.0.1:%d", port);
     butil::EndPoint ep;
-    ASSERT_EQ(0, str2endpoint("127.0.0.1:8613", &ep));
+    ASSERT_EQ(0, str2endpoint(addr.c_str(), &ep));
     brpc::Server server;
     brpc::ServerOptions opt;
     opt.enabled_protocols = "hehe baidu_std";

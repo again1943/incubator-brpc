@@ -43,16 +43,28 @@ bool FindUnusedTcpPort(int* port) {
     fd, SOL_SOCKET, SO_REUSEADDR, &enable_socket_reuse, sizeof(int)) < 0) {
     close(fd);
     return false;
-  } 
+  }
+
+  size_t max_retry = 100;
+  int candidate_port = *port > 0 ? *port : 2048;
+  bool has_available_port = false;
 
   struct sockaddr_in addr;
-  memset(&addr, 0, sizeof(addr));
-  addr.sin_family = AF_INET;
-  addr.sin_port = 0;
-  addr.sin_addr.s_addr = INADDR_ANY;
+  for (size_t attempt = 0; attempt < max_retry; ++attempt) {
+    memset(&addr, 0, sizeof(addr));
+    addr.sin_family = AF_INET;
+    addr.sin_port = candidate_port;
+    addr.sin_addr.s_addr = INADDR_ANY;
 
-  if (bind(fd, (struct sockaddr*)(&addr), sizeof(addr)) < 0) {
-    close(fd);
+    if (bind(fd, (struct sockaddr*)(&addr), sizeof(addr)) < 0) {
+        candidate_port += 1;
+        continue;
+    }
+    has_available_port = true;
+    break;
+  }
+
+  if (!has_available_port) {
     return false;
   }
 
