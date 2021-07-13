@@ -172,6 +172,7 @@ protected:
 TEST_F(ServerTest, sanity) {
     int port = 8613;
     EXPECT_TRUE(brpc::test::FindUnusedTcpPort(&port));
+    LOG(INFO) << "Find available port " << port;
     std::string addr;
     {
         brpc::Server server;
@@ -212,7 +213,7 @@ TEST_F(ServerTest, sanity) {
     butil::EndPoint ep;
     MyAuthenticator auth;
     brpc::Server server;
-    addr = butil::string_printf("localhost:%d", port);
+    addr = butil::string_printf("127.0.0.1:%d", port);
     LOG(INFO) << addr;
     ASSERT_EQ(0, str2endpoint(addr.c_str(), &ep));
     brpc::ServerOptions opt;

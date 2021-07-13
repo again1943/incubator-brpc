@@ -47,7 +47,6 @@ bool FindUnusedTcpPort(int* port) {
 
   size_t max_retry = 100;
   int candidate_port = *port > 0 ? *port : 2048;
-  bool has_available_port = false;
 
   struct sockaddr_in addr;
   for (size_t attempt = 0; attempt < max_retry; ++attempt) {
@@ -60,23 +59,10 @@ bool FindUnusedTcpPort(int* port) {
         candidate_port += 1;
         continue;
     }
-    has_available_port = true;
     *port = candidate_port;
-    break;
+    return true;
   }
-
-  if (!has_available_port) {
-    return false;
-  }
-
-  socklen_t len = sizeof(addr);
-  if (getsockname(fd, (struct sockaddr*)(&addr), &len) < 0) {
-    close(fd);
-    return false;
-  }
-
-  *port = ntohs(addr.sin_port);
-  return true;
+  return false;
 }
 
 }
