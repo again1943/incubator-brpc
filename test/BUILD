@@ -245,8 +245,8 @@ cc_test(
     copts = COPTS,
 )
 
+# CaseName => has_self_defined_main_function
 BVAR_UNIT_CASES = {
-  # "${case_name}" => has_self_defined_main_function
   "bvar_agent_group_unittest" : False,
   "bvar_file_dumper_unittest" : False,
   #"bvar_lock_timer_unittest" : False,
@@ -265,7 +265,7 @@ BVAR_UNIT_CASES = {
     ],
     deps = [
         "//:brpc",
-        "@com_google_googletest//:gtest_main" if case[1] else "@com_google_googletest//:gtest",
+        "@com_google_googletest//:gtest" if case[1] else "@com_google_googletest//:gtest_main",
     ],
     copts = COPTS,
 ) for case in BVAR_UNIT_CASES.items()]
