@@ -317,7 +317,11 @@ public:
 
 TEST_F(ServerTest, empty_enabled_protocols) {
     butil::EndPoint ep;
-    ASSERT_EQ(0, str2endpoint("127.0.0.1:8613", &ep));
+    int port = 8613;
+    EXPECT_TRUE(brpc::test::FindUnusedTcpPort(&port));
+    std::string addr = butil::string_printf("127.0.0.1:%d", port);
+
+    ASSERT_EQ(0, str2endpoint(addr.c_str(), &ep));
     brpc::Server server;
     EchoServiceImpl echo_svc;
     ASSERT_EQ(0, server.AddService(
@@ -344,7 +348,11 @@ TEST_F(ServerTest, empty_enabled_protocols) {
 
 TEST_F(ServerTest, only_allow_protocols_in_enabled_protocols) {
     butil::EndPoint ep;
-    ASSERT_EQ(0, str2endpoint("127.0.0.1:8613", &ep));
+    int port = 8613;
+    EXPECT_TRUE(brpc::test::FindUnusedTcpPort(&port));
+    std::string addr = butil::string_printf("127.0.0.1:%d", port);
+
+    ASSERT_EQ(0, str2endpoint(addr.c_str(), &ep));
     brpc::Server server;
     EchoServiceImpl echo_svc;
     ASSERT_EQ(0, server.AddService(
@@ -1003,7 +1011,11 @@ TEST_F(ServerTest, add_remove_service) {
         test::EchoService::descriptor()->name()));
 
     butil::EndPoint ep;
-    ASSERT_EQ(0, str2endpoint("127.0.0.1:8613", &ep));
+    int port = 8613;
+    EXPECT_TRUE(brpc::test::FindUnusedTcpPort(&port));
+    std::string addr = butil::string_printf("127.0.0.1:%d", port);
+
+    ASSERT_EQ(0, str2endpoint(addr.c_str(), &ep));
     ASSERT_EQ(0, server.Start(ep, NULL));
 
     ASSERT_EQ(1ul, server.service_count());
@@ -1056,7 +1068,12 @@ TEST_F(ServerTest, close_idle_connections) {
     brpc::Server server;
     brpc::ServerOptions opt;
     opt.idle_timeout_sec = 1;
-    ASSERT_EQ(0, str2endpoint("127.0.0.1:9776", &ep));
+
+    int port = 9776;
+    EXPECT_TRUE(brpc::test::FindUnusedTcpPort(&port));
+    std::string addr = butil::string_printf("127.0.0.1:%d", port);
+    ASSERT_EQ(0, str2endpoint(addr.c_str(), &ep));
+
     ASSERT_EQ(0, server.Start(ep, &opt));
 
     const int cfd = tcp_connect(ep, NULL);
@@ -1191,7 +1208,10 @@ TEST_F(ServerTest, serving_requests) {
     ASSERT_EQ(0, server.AddService(&echo_svc,
                                    brpc::SERVER_DOESNT_OWN_SERVICE));
     butil::EndPoint ep;
-    ASSERT_EQ(0, str2endpoint("127.0.0.1:8613", &ep));
+    int port = 8613;
+    EXPECT_TRUE(brpc::test::FindUnusedTcpPort(&port));
+    std::string addr = butil::string_printf("127.0.0.1:%d", port);
+    ASSERT_EQ(0, str2endpoint(addr.c_str(), &ep));
     ASSERT_EQ(0, server.Start(ep, NULL));
 
     const int NUM = 1;

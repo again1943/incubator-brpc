@@ -576,9 +576,12 @@ TEST_F(SocketTest, app_level_health_check) {
     GFLAGS_NS::SetCommandLineOption("health_check_interval", "1");
 
     butil::EndPoint point(butil::IP_ANY, 7777);
+
     brpc::ChannelOptions options;
     options.protocol = "http";
     options.max_retry = 0;
+    // Default 200ms on MacOS issues ETIMEOUT instead of ECONNREFUSED
+    options.connect_timeout_ms = 2000;
     brpc::Channel channel;
     ASSERT_EQ(0, channel.Init(point, &options));
     {
@@ -726,7 +729,7 @@ TEST_F(SocketTest, health_check) {
     while (brpc::Socket::Status(id, &nref) != 0) {
         bthread_usleep(1000);
         ASSERT_LT(butil::gettimeofday_us(),
-                  start_time + kCheckInteval * 1000000L + 100000L/*100ms*/);
+                  start_time + kCheckInteval * 1000000L + 300000L/*300ms*/);
     }
     //ASSERT_EQ(2, nref);
     ASSERT_TRUE(global_sock);
