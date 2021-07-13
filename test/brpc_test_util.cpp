@@ -21,6 +21,7 @@
 #include <netinet/in.h>
 #include <unistd.h>
 #include <cstring>
+#include <cstdio>
 
 #include "brpc_test_util.h"
 
@@ -32,34 +33,39 @@ namespace test {
 // FindUnusedTcpPort offers an portable way to get an unused, random
 // port to make such unittest case more table.
 
-bool FindUnusedTcpPort(int* port) {
+bool TryBindPort(short port) {
   int fd = socket(AF_INET, SOCK_STREAM, 0);
   if (fd < 0) {
+    perror("socket");
     return false;
   }
-
-  int enable_socket_reuse = 1;
-  if (setsockopt(fd, SOL_SOCKET, SO_REUSEPORT, &enable_socket_reuse, sizeof(int)) < 0) {
-    close(fd);
-    return false;
-  }
-
-  size_t max_retry = 100;
-  int candidate_port = *port > 0 ? *port : 2048;
 
   struct sockaddr_in addr;
-  for (size_t attempt = 0; attempt < max_retry; ++attempt) {
-    memset(&addr, 0, sizeof(addr));
-    addr.sin_family = AF_INET;
-    addr.sin_port = candidate_port;
-    addr.sin_addr.s_addr = INADDR_ANY;
+  memset(&addr, 0, sizeof(addr));
+  addr.sin_family = AF_INET;
+  addr.sin_addr.s_addr = htonl(INADDR_ANY);
+  addr.sin_port = htons(port);
 
-    if (bind(fd, (struct sockaddr*)(&addr), sizeof(addr)) < 0) {
-        candidate_port += 1;
-        continue;
+  bool is_port_available = false;
+  if (bind(fd, (struct sockaddr*)&addr, sizeof(addr)) == 0) {
+    is_port_available = true;
+  } else {
+    perror("bind");
+  }
+  close(fd);
+  return is_port_available;
+}
+
+bool FindUnusedTcpPort(int* port) {
+  size_t max_retry = 100;
+  short candidate_port = *port > 0 ? *port : 2048;
+
+  for (size_t retry = 0; retry < max_retry; retry++) {
+    if (TryBindPort(candidate_port)) {
+      *port = candidate_port;
+      return true;
     }
-    *port = candidate_port;
-    return true;
+    candidate_port += 1;
   }
   return false;
 }
