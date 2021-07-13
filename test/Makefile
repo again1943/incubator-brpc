@@ -51,6 +51,7 @@ SOPATHS = $(addprefix -Wl$(COMMA)-rpath$(COMMA), $(LIBS))
 SOEXT = so
 ifeq ($(SYSTEM),Darwin)
     SOEXT = dylib
+    CPPFLAGS+=-Dprivate=public -Dprotected=public
 endif
 
 TEST_BUTIL_SOURCES = \

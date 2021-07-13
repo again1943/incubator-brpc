@@ -245,21 +245,30 @@ cc_test(
     copts = COPTS,
 )
 
-cc_test(
-    name = "bvar_test",
-    srcs = glob([
-        "bvar_*_unittest.cpp",
+BVAR_UNIT_CASES = {
+  # "${case_name}" => has_self_defined_main_function
+  "bvar_agent_group_unittest" : False,
+  "bvar_file_dumper_unittest" : False,
+  #"bvar_lock_timer_unittest" : False,
+  "bvar_percentile_unittest"  : False,
+  #"bvar_recorder_unittest"   : False,
+  "bvar_reducer_unittest"     : False,
+  "bvar_sampler_unittest"     : False,
+  "bvar_status_unittest"      : False,
+  "bvar_variable_unittest"    : True,
+}
+
+[cc_test(
+    name = case[0],
+    srcs = [
+        case[0] + ".cpp"
     ],
-    exclude = [
-        "bvar_lock_timer_unittest.cpp",
-        "bvar_recorder_unittest.cpp",
-    ]),
     deps = [
         "//:brpc",
-        "@com_google_googletest//:gtest",
+        "@com_google_googletest//:gtest_main" if case[1] else "@com_google_googletest//:gtest",
     ],
     copts = COPTS,
-)
+) for case in BVAR_UNIT_CASES.items()]
 
 BTHREAD_UNIT_CASES = [
   "bthread_butex_unittest",
@@ -307,60 +316,60 @@ cc_library(
   ],
 )
 
-BRPC_UNIT_CASES = [
-    "brpc_adaptive_class_unittest",
-    "brpc_builtin_service_unittest",
-    "brpc_channel_unittest",
-    "brpc_circuit_breaker_unittest",
-    "brpc_controller_unittest",
-    "brpc_esp_protocol_unittest",
-    "brpc_event_dispatcher_unittest",
-    "brpc_extension_unittest",
-    "brpc_grpc_protocol_unittest",
-    "brpc_h2_unsent_message_unittest",
-    "brpc_hpack_unittest",
-    "brpc_http_message_unittest",
-    "brpc_http_parser_unittest",
-    "brpc_http_rpc_protocol_unittest",
-    "brpc_http_status_code_unittest",
-    "brpc_hulu_pbrpc_protocol_unittest",
-    "brpc_input_messenger_unittest",
-    "brpc_load_balancer_unittest",
-    "brpc_memcache_unittest",
-    "brpc_mongo_protocol_unittest",
-    "brpc_naming_service_filter_unittest",
-    "brpc_naming_service_unittest",
-    "brpc_nova_pbrpc_protocol_unittest",
-    "brpc_prometheus_metrics_unittest",
-    "brpc_proto_unittest",
-    "brpc_protobuf_json_unittest",
-    "brpc_public_pbrpc_protocol_unittest",
-    "brpc_redis_unittest",
-    "brpc_repeated_field_unittest",
-    "brpc_rtmp_unittest",
-    "brpc_server_unittest",
-    "brpc_snappy_compress_unittest",
-    "brpc_socket_map_unittest",
-    "brpc_socket_unittest",
-    "brpc_sofa_pbrpc_protocol_unittest",
-    "brpc_ssl_unittest",
-    "brpc_streaming_rpc_unittest",
-    "brpc_uri_unittest",
-]
+# CaseName => has_self_defined_main_function
+BRPC_UNIT_CASES = {
+    "brpc_channel_unittest"               : True,
+    "brpc_circuit_breaker_unittest"       : True,
+    "brpc_esp_protocol_unittest"          : True,
+    "brpc_grpc_protocol_unittest"         : True,
+    "brpc_h2_unsent_message_unittest"     : True,
+    "brpc_http_rpc_protocol_unittest"     : True,
+    "brpc_hulu_pbrpc_protocol_unittest"   : True,
+    "brpc_input_messenger_unittest"       : True,
+    "brpc_memcache_unittest"              : True,
+    "brpc_mongo_protocol_unittest"        : True,
+    "brpc_prometheus_metrics_unittest"    : True,
+    "brpc_public_pbrpc_protocol_unittest" : True,
+    "brpc_redis_unittest"                 : True,
+    "brpc_rtmp_unittest"                  : True,
+    "brpc_server_unittest"                : True,
+    "brpc_socket_map_unittest"            : True,
+    "brpc_socket_unittest"                : True,
+    "brpc_sofa_pbrpc_protocol_unittest"   : True,
+    "brpc_adaptive_class_unittest"        : False,
+    "brpc_builtin_service_unittest"       : False,
+    "brpc_controller_unittest"            : False,
+    "brpc_event_dispatcher_unittest"      : False,
+    "brpc_extension_unittest"             : False,
+    "brpc_hpack_unittest"                 : False,
+    "brpc_http_message_unittest"          : False,
+    "brpc_http_parser_unittest"           : False,
+    "brpc_http_status_code_unittest"      : False,
+    "brpc_load_balancer_unittest"         : False,
+    "brpc_naming_service_filter_unittest" : False,
+    "brpc_naming_service_unittest"        : False,
+    "brpc_nova_pbrpc_protocol_unittest"   : False,
+    "brpc_proto_unittest"                 : False,
+    "brpc_protobuf_json_unittest"         : False,
+    "brpc_repeated_field_unittest"        : False,
+    "brpc_snappy_compress_unittest"       : False,
+    "brpc_ssl_unittest"                   : False,
+    "brpc_streaming_rpc_unittest"         : False,
+    "brpc_uri_unittest"                   : False,
+}
 
 [cc_test(
-    name = case,
+    name = case[0],
     srcs = [
-     	case + ".cpp",
+     	case[0] + ".cpp",
     ],
     deps = [
         ":cc_test_proto",
         ":test_util",
         "//:brpc",
         "//gperftools:gperftools",
-        #"@com_google_googletest//:gtest",
-        "@com_google_googletest//:gtest_main",
         #"@com_github_gflags_gflags//:gflags",
+        "@com_google_googletest//:gtest_main" if case[1] else "@com_google_googletest//:gtest",
     ],
     copts = COPTS,
     data = [
@@ -370,4 +379,4 @@ BRPC_UNIT_CASES = [
         ":cert2.crt",
         ":cert2.key",
     ],
-) for case in BRPC_UNIT_CASES]
+) for case in BRPC_UNIT_CASES.items()]
